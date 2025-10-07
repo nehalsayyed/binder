@@ -1,2 +1,1 @@
-cargo
-rustc
+torch= "2.8"
