@@ -1,1 +1,2 @@
 nasm
+i386-elf-gcc
