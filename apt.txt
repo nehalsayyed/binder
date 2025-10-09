@@ -1,4 +1,4 @@
 nasm
 gcc
 genisoimage
-docker
+neofetch
