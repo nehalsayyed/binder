@@ -2,3 +2,5 @@ nasm
 gcc
 genisoimage
 neofetch
+tcpdump
+net-tools
