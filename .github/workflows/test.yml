@@ -8,4 +8,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Running lscpu
-        run: lscpu && lsusb
+        run: lscpu && sudo lsmod
