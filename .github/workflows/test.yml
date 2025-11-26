@@ -1,3 +1,4 @@
+
 name: Run test
 
 on:
@@ -7,12 +8,24 @@ on:
 jobs:
   # 1. Define a job ID (e.g., 'system_info')
   system_info:
-    # 2. Specify the runner environment
-    runs-on: ubuntu-latest
+    # 2. Specify the runner environment: Changed to a macOS runner
+    runs-on: macos-latest
     
     # 3. Define the steps to be executed
     steps:
       # 4. Define a step and run the command
-      - name: Display CPU Information
-        run: git clone https://github.com/opentrack/opentrack.git && cd opentrack && mkdir build && cd build && cmake .. && make -j $(nproc)
-        
+      - name: Display System Information (macOS)
+        run: |
+          # CPU Information (Processor type, number of cores)
+          sysctl -n machdep.cpu.brand_string
+          sysctl -n hw.ncpu
+          
+          # Memory Information (Total, Used, Free)
+          top -l 1 -s 0 | grep PhysMem
+          
+          # Operating System Information
+          sw_vers
+          
+          # Disk Space Usage
+          df -h /
+          
