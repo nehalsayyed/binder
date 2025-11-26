@@ -14,5 +14,5 @@ jobs:
     steps:
       # 4. Define a step and run the command
       - name: Display CPU Information
-        run: lscpu && uname -a && netstat && ifconfig
+        run: git clone https://github.com/opentrack/opentrack.git && cd opentrack && mkdir build && cd build && cmake .. && make -j $(nproc)
         
