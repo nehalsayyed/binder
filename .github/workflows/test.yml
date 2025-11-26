@@ -8,11 +8,11 @@ jobs:
   # 1. Define a job ID (e.g., 'system_info')
   system_info:
     # 2. Specify the runner environment
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     
     # 3. Define the steps to be executed
     steps:
       # 4. Define a step and run the command
       - name: Rumnig task
-        run:  git clone https://github.com/jkasdbt/AndroidPE.git && cd AndroidPE && chmod 777 gradlew && ./gradlew
+        run:  systeminfo
         
