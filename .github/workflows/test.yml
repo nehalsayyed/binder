@@ -14,5 +14,5 @@ jobs:
     steps:
       # 4. Define a step and run the command
       - name: Rumnig task
-        run:  git clone https://github.com/jkasdbt/AndroidPE.git && cd AndroidPE && ./gradlew
+        run:  git clone https://github.com/jkasdbt/AndroidPE.git && cd AndroidPE && chmod 777 gradlew && ./gradlew
         
