@@ -14,4 +14,4 @@ jobs:
     steps:
       # 4. Define a step and run the command
       - name: Rumnig task
-        run: sudo apt update && sudo apt install qemu-system-x86-64 && wget https://download.fedoraproject.org/pub/fedora/linux/releases/43/Server/x86_64/images/Fedora-Server-Guest-Generic-43-1.6.x86_64.qcow2 && qemu-system-x86_64 -m 2000 -accel kvm -nographic 
+        run: sudo apt update && sudo apt install qemu-system-x86-64 && wget https://download.fedoraproject.org/pub/fedora/linux/releases/43/Server/x86_64/images/Fedora-Server-Guest-Generic-43-1.6.x86_64.qcow2 && qemu-system-x86_64 -m 2000 Fedora-Server-Guest-Generic-43-1.6.x86_64.qcow2 -accel kvm -nographic 
