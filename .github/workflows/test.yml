@@ -1,43 +1,37 @@
-name: GIMP Screenshot
+name: Run CentOS Job
 
 on:
   workflow_dispatch:
 
 jobs:
-  run-gimp:
-    runs-on: ubuntu-latest
+  centos-job:
+    name: Run inside CentOS
+    runs-on: ubuntu-latest   # GitHub runner, but the job runs inside the container
+    container:
+      image: centos:7        # You can change to centos:8 or rockylinux etc.
+    outputs:
+      centos_message: ${{ steps.set_output.outputs.message }}
 
     steps:
-      - name: Install dependencies
+      - name: Check OS version
+        id: check
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            gimp \
-            xvfb \
-            imagemagick \
-            x11-apps
+          echo "Running inside container:"
+          cat /etc/os-release
 
-      - name: Start virtual display
+      - name: Set workflow output
+        id: set_output
         run: |
-          export DISPLAY=:99
-          Xvfb :99 -screen 0 1920x1080x24 &
-          sleep 3
-        shell: bash
+          MESSAGE="This job is running inside CentOS!"
+          echo "message=$MESSAGE" >> $GITHUB_OUTPUT
+          echo "$MESSAGE"
 
-      - name: Launch GIMP inside virtual display
+  print-output:
+    needs: centos-job
+    runs-on: ubuntu-latest
+    steps:
+      - name: Display output from CentOS job
         run: |
-          export DISPLAY=:99
-          gimp --no-interface --show-playground &   # Opens non-blocking
-          sleep 10                                  # Wait for window to appear
-
-      - name: Take screenshot
-        run: |
-          export DISPLAY=:99
-          import -window root screenshot.png
-
-      - name: Upload screenshot artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: gimp-screenshot
-          path: screenshot.png
+          echo "Output from CentOS job:"
+          echo "${{ needs.centos-job.outputs.centos_message }}"
           
