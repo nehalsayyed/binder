@@ -1,68 +1,62 @@
-name: Firefox Installation and Screenshot Test (Playwright)
+name: Android Emulator Screenshot Capture
 
 on:
-  # Allows you to run this workflow manually from the GitHub Actions tab
+  # Allows manual triggering of the workflow
   workflow_dispatch:
 
 jobs:
-  test_and_screenshot:
+  screenshot_emulator:
+    # Use a large runner for better performance with emulation (optional, but recommended)
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout Repository Code
         uses: actions/checkout@v4
 
-      # --- Step 1: Set up Node.js (Required for Playwright) ---
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      # --- Step 1: Set up Java ---
+      # Android requires a specific JDK version (e.g., JDK 17)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          node-version: '20'
+          distribution: 'temurin'
+          java-version: '17'
           
-      # --- Step 2: Install Playwright and Firefox Browser ---
-      - name: Install Playwright
-        # Playwright installs its required browser binaries (like Firefox) automatically
-        run: |
-          npm install playwright
-          npx playwright install firefox
+      # --- Step 2: Install and Launch Android Emulator (AVD) ---
+      - name: Run Android Emulator and Capture Screenshot
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          # Define the virtual device properties
+          api-level: 30       # Android 11 (a common, stable API level)
+          target: default     # Use a standard Android image
+          arch: x86_64        # Architecture optimized for GitHub runners
+          profile: Nexus 5    # Specify the device model profile
           
-      # --- Step 3: Create and Run the Screenshot Script ---
-      - name: Capture Firefox Screenshot (via Playwright)
-        # We run a small inline Node.js script to ensure reliable screenshot capture.
-        run: |
-          # This script launches Firefox in headless mode (default for CI), 
-          # navigates to Google, and saves a screenshot.
-          echo '
-            const playwright = require("playwright");
+          # Crucial step for performance: disable emulator animations
+          disable-animations: true
+          
+          # The main script to run once the emulator is fully booted and ready.
+          # This is the equivalent of opening the browser in the previous example.
+          script: |
+            echo "Emulator is booted. Taking screenshot now..."
             
-            (async () => {
-              // 1. Launch Firefox
-              const browser = await playwright.firefox.launch();
-              const page = await browser.newPage();
-              
-              // 2. Navigate and set viewport
-              await page.setViewportSize({ width: 1280, height: 960 });
-              console.log("Navigating to https://www.google.com");
-              await page.goto("https://www.google.com");
-              
-              // 3. Take the screenshot
-              await page.screenshot({ path: "screenshot.png", fullPage: true });
-              console.log("Screenshot successfully saved as screenshot.png");
-              
-              // 4. Close the browser
-              await browser.close();
-            })();
-          ' > screenshot.js
-          
-          node screenshot.js
-          
+            # ADB command to capture the screen directly to standard output (-p for PNG)
+            # The 'exec-out' flag ensures the raw binary data is piped correctly to the file.
+            adb exec-out screencap -p > emulator_screenshot.png
+            
+            echo "Screenshot saved as emulator_screenshot.png"
+            
+            # Optional: Simulate navigation to an app (uncomment if you have an Android project)
+            # adb shell am start -a android.intent.action.VIEW -d "https://www.google.com"
+            # sleep 5 # Give it time to load the page
+            # adb exec-out screencap -p > google_screenshot.png
+
+      # --- Step 3: Verify and Upload the Artifact ---
       - name: Check for Screenshot File
-        # Confirm the file exists after the script runs
-        run: ls -l screenshot.png
+        run: ls -l emulator_screenshot.png
         
-      - name: Upload Screenshot Artifact
-        # Upload the captured image so you can view it in the workflow run summary
+      - name: Upload Emulator Screenshot Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: firefox-screenshot
-          path: screenshot.png
+          name: android-emulator-screenshot
+          path: emulator_screenshot.png
           retention-days: 1
