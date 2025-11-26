@@ -15,7 +15,5 @@ jobs:
       # 4. Define a step and run the command
       - name: Rumnig task
         run:  |
-          choco install rust
-          rustc --version
-          cargo --version
+          choco install firefox 
         
