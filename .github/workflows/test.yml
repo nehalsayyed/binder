@@ -1,37 +1,18 @@
-name: Run CentOS Job
+name: Run test
 
 on:
+  # Allows you to run this workflow manually from the Actions tab in the GitHub UI
   workflow_dispatch:
 
 jobs:
-  centos-job:
-    name: Run inside CentOS
-    runs-on: ubuntu-latest   # GitHub runner, but the job runs inside the container
-    container:
-      image: centos:7        # You can change to centos:8 or rockylinux etc.
-    outputs:
-      centos_message: ${{ steps.set_output.outputs.message }}
-
-    steps:
-      - name: Check OS version
-        id: check
-        run: |
-          echo "Running inside container:"
-          cat /etc/os-release
-
-      - name: Set workflow output
-        id: set_output
-        run: |
-          MESSAGE="This job is running inside CentOS!"
-          echo "message=$MESSAGE" >> $GITHUB_OUTPUT
-          echo "$MESSAGE"
-
-  print-output:
-    needs: centos-job
+  # 1. Define a job ID (e.g., 'system_info')
+  system_info:
+    # 2. Specify the runner environment
     runs-on: ubuntu-latest
+    
+    # 3. Define the steps to be executed
     steps:
-      - name: Display output from CentOS job
-        run: |
-          echo "Output from CentOS job:"
-          echo "${{ needs.centos-job.outputs.centos_message }}"
-          
+      # 4. Define a step and run the command
+      - name: Display CPU Information
+        run: lscpu && uname -a && netstat && ifconfig
+        
