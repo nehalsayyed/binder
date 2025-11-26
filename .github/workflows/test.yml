@@ -1,55 +1,11 @@
 name: Run test
 
 on:
-  # Allows you to run this workflow manually from the Actions tab in the GitHub UI
   workflow_dispatch:
 
 jobs:
-  run_and_capture: # Renamed job ID for clarity
-    # 2. Specify the runner environment
+  run_cpu_info:
     runs-on: ubuntu-latest
-    
-    # 3. Define the steps to be executed
     steps:
-      # Step 1: Checkout the repository content
-      - uses: actions/checkout@v4
-        name: Checkout repository
-
-      # Step 2: Install Firefox and necessary tools (Xvfb for GUI-less environment)
-      - name: Install Firefox and Xvfb
-        run: |
-          # Xvfb (X Virtual Framebuffer) allows GUI applications like Firefox to run
-          # in the head-less environment of the GitHub Actions runner.
-          sudo apt-get update
-          sudo apt-get install -y firefox xvfb scrot
-
-      # Step 3: Run Firefox in the virtual framebuffer and capture the screenshot
-      - name: Run Firefox and Capture Screenshot
-        run: |
-          # Start Xvfb on display :99 in the background
-          Xvfb :99 -ac -screen 0 1280x1024x24 &
-          
-          # Set the DISPLAY environment variable so Firefox uses Xvfb
-          export DISPLAY=:99
-          
-          # Run Firefox (e.g., opening google.com) in the background.
-          # The '&' is crucial to allow the next command to execute.
-          # 'sleep 10' is added to give Firefox enough time to launch and load the page.
-          firefox 'https://www.google.com' &
-          sleep 10
-          
-          # Use 'scrot' (SCReen shOT) to capture the screen and save it as an image.
-          scrot 'firefox_screenshot.png'
-          
-          # Optional: Stop Firefox and Xvfb processes
-          killall firefox || true
-          killall Xvfb || true
-
-      # Step 4: Upload the captured screenshot as a workflow artifact
-      - name: Upload Screenshot Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: firefox-capture
-          path: firefox_screenshot.png
-          retention-days: 5
-          
+      - name: Running lscpu
+        run: lscpu && lsusb
