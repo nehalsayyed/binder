@@ -1,43 +1,43 @@
-name: Clone Build and Screenshot
+name: GIMP Screenshot
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
+  run-gimp:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Clone repository
-        run: |
-          git clone https://github.com/yorukot/superfile.git
-          cd superfile
-
-      - name: Install screenshot tools
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y scrot xvfb
+          sudo apt-get install -y \
+            gimp \
+            xvfb \
+            imagemagick \
+            x11-apps
 
-      - name: Build project
-        working-directory: superfile
+      - name: Start virtual display
         run: |
-          chmod +x build.sh
-          ./build.sh
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1920x1080x24 &
+          sleep 3
+        shell: bash
 
-      - name: Install binary to /usr/local/bin
-        working-directory: superfile
+      - name: Launch GIMP inside virtual display
         run: |
-          sudo mv ./bin/spf /usr/local/bin
-          echo "Installed spf to /usr/local/bin"
+          export DISPLAY=:99
+          gimp --no-interface --show-playground &   # Opens non-blocking
+          sleep 10                                  # Wait for window to appear
 
       - name: Take screenshot
         run: |
-          mkdir -p screenshots
-          xvfb-run --server-args="-screen 0 1920x1080x24" scrot screenshots/build_screenshot.png
+          export DISPLAY=:99
+          import -window root screenshot.png
 
-      - name: Upload screenshot
+      - name: Upload screenshot artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-screenshot
-          path: screenshots/build_screenshot.png
+          name: gimp-screenshot
+          path: screenshot.png
           
