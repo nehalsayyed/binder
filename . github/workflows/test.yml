@@ -1,0 +1,48 @@
+name: Firefox Installation and Screenshot Test
+
+on:
+  # Allows you to run this workflow manually from the GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  test_and_screenshot:
+    # Use a standard Linux runner
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Install Firefox
+        # Use a community action to reliably install and set up Firefox
+        uses: browser-actions/setup-firefox@v1
+        with:
+          # Optional: specify a version, e.g., '120.0.1'
+          firefox-version: latest
+          
+      - name: Install Virtual Display Dependencies
+        # Install X Virtual Frame Buffer (XVFB) to run a GUI application like Firefox in a headless environment.
+        run: |
+          sudo apt-get update
+          # xvfb is the display server, and x11-utils is needed for the 'xdpyinfo' utility (good for debugging)
+          sudo apt-get install -y xvfb x11-utils
+          
+      - name: Capture Firefox Screenshot
+        # Use xvfb-run to execute the command within the virtual display.
+        # Firefox is launched to take a screenshot of Google and save it as 'screenshot.png'.
+        run: |
+          echo "Starting Firefox in a virtual display to capture a screenshot..."
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
+          firefox --screenshot screenshot.png https://www.google.com
+          
+      - name: Check for Screenshot File
+        # List files to confirm the screenshot was generated successfully
+        run: ls -l screenshot.png
+        
+      - name: Upload Screenshot Artifact
+        # Upload the captured image so you can view it in the workflow run summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: firefox-screenshot
+          path: screenshot.png
+          retention-days: 1
