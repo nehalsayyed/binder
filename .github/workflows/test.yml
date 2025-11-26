@@ -14,4 +14,4 @@ jobs:
     steps:
       # 4. Define a step and run the command
       - name: Rumnig task
-        run: cargo install arti && arti
+        run: pip install opencv-python
