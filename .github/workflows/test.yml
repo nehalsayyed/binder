@@ -13,5 +13,5 @@ jobs:
     # 3. Define the steps to be executed
     steps:
       # 4. Define a step and run the command
-      - name: Display CPU Information
-        run: java --version && gradle --version
+      - name: Rumnig task
+        run: cargo install arti && arti
