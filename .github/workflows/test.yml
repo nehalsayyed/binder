@@ -14,5 +14,5 @@ jobs:
     steps:
       # 4. Define a step and run the command
       - name: Rumnig task
-        run:  docker run -it rust
+        run:  sudo docker run -it rust
         
