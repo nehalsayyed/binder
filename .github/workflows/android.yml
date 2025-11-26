@@ -1,0 +1,72 @@
+name: Capture APK Screenshot
+
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  screenshot:
+    # Use a large Linux runner that supports hardware acceleration (KVM) for emulators
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⬇️ Download APK
+        run: |
+          # Use curl to download the APK file to the current directory
+          # The file will be named app-arm64-release.apk
+          curl -L -o app.apk "https://github.com/HanzoDev1375/Ghostide/releases/download/2.0.5/app-arm64-release.apk"
+          
+      - name: 🚀 Set up and Launch Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          # Define the target API level and device
+          api-level: 30 
+          target: default
+          arch: arm64
+          # The Ghostide APK is for arm64
+          force-avd-creation: false
+          # Launch the emulator
+          emulator-boot-timeout: 300 
+          # Execute ADB commands once the emulator is ready
+          script: |
+            echo "Emulator started."
+
+      - name: 📱 Install and Run APK & Capture Screenshot
+        run: |
+          # The 'reactivecircus' action sets up ADB, so we can use it directly.
+
+          # 1. Install the downloaded APK
+          adb install app.apk
+          
+          # 2. Wait a moment for the installation and first launch to settle
+          sleep 10
+          
+          # 3. Figure out the main activity name (Ghostide package name)
+          PACKAGE_NAME="com.ghostide.android"
+          
+          # 4. Launch the main activity of the application
+          # You might need to adjust the component name if the app uses a different one
+          adb shell am start -n "$PACKAGE_NAME/.MainActivity" || adb shell monkey -p "$PACKAGE_NAME" 1
+          
+          # 5. Wait a few seconds for the app to fully load and display the UI
+          sleep 10
+          
+          # 6. Take the screenshot (screencap) and save it to the device's SD card
+          SCREENSHOT_PATH="/sdcard/app_screenshot.png"
+          adb shell screencap -p $SCREENSHOT_PATH
+          
+          # 7. Pull the screenshot from the emulator to the runner environment
+          adb pull $SCREENSHOT_PATH screenshot.png
+          
+          echo "Screenshot captured as screenshot.png"
+
+      - name: 📤 Upload Screenshot Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-screenshot
+          path: screenshot.png
+          # Set the retention days (optional)
+          retention-days: 5
