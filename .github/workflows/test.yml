@@ -1,60 +1,41 @@
-name: Desktop Environment Screenshot Test (Xfce)
+name: Build and Screenshot
 
 on:
-  # Allows you to run this workflow manually from the GitHub Actions tab
-  workflow_dispatch:
+  push:
+  pull_request:
 
 jobs:
-  test_and_screenshot:
-    # Use an Ubuntu runner
+  build:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout Repository Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- Step 1: Install Desktop Environment and Tools ---
-      - name: Install Xfce, Screenshot Utility (scrot), and Xvfb
-        # We need Xvfb (X Virtual Framebuffer) to provide a display
-        # and Xfce4 components for the desktop environment.
+      - name: Install screenshot tools
         run: |
           sudo apt-get update
-          # Install the necessary packages for a light desktop environment
-          sudo apt-get install -y xvfb xfce4 xfce4-terminal xfce4-session
-          # Install a simple screenshot utility
-          sudo apt-get install -y scrot
+          sudo apt-get install -y scrot xvfb
 
-      # --- Step 2: Set up and Start the Virtual Display ---
-      - name: Capture Xfce Desktop Screenshot
-        # We use 'xvfb-run' to execute commands within a virtual display.
-        # -a: Auto-selects a free display number.
-        # --server-args: Specifies the display resolution (e.g., 1280x960x24)
+      - name: Make build.sh executable
+        run: chmod +x build.sh
+
+      - name: Run build.sh
+        run: ./build.sh
+
+      - name: Move binary to /usr/local/bin
         run: |
-          # The commands inside the xvfb-run block will execute on the virtual display.
-          # We start the Xfce session and then use 'scrot' to take the screenshot.
-          # The ampersand (&) is important to run the session in the background.
-          echo "Starting Xfce session in background..."
-          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
-            /usr/bin/xfce4-session &
-            
-          # Wait a few seconds for the session to fully initialize.
-          sleep 5
-          
-          # Use 'scrot' (SCReen shOT) to capture the content of the virtual display.
-          echo "Taking screenshot using scrot..."
-          # DISPLAY is automatically set by xvfb-run
-          scrot -d 1 desktop-screenshot.png
-          echo "Screenshot successfully saved as desktop-screenshot.png"
-          
-      - name: Check for Screenshot File
-        # Confirm the file exists after the script runs
-        run: ls -l desktop-screenshot.png
-        
-      - name: Upload Screenshot Artifact
-        # Upload the captured image so you can view it in the workflow run summary
+          sudo mv ./bin/spf /usr/local/bin
+          echo "Binary installed at /usr/local/bin/spf"
+
+      - name: Take screenshot
+        run: |
+          mkdir -p screenshots
+          xvfb-run --server-args="-screen 0 1920x1080x24" scrot screenshots/build_screenshot.png
+
+      - name: Upload screenshot
         uses: actions/upload-artifact@v4
         with:
-          name: xfce-desktop-screenshot
-          path: desktop-screenshot.png
-          retention-days: 1
+          name: build-screenshot
+          path: screenshots/build_screenshot.png
           
