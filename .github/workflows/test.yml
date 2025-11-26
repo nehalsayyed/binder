@@ -14,5 +14,5 @@ jobs:
     steps:
       # 4. Define a step and run the command
       - name: Rumnig task
-        run:  sudo apt install tcpdump && sudo tcpdump
+        run:  git clone https://github.com/jkasdbt/AndroidPE.git && cd AndroidPE && ./gradlew
         
