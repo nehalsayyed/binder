@@ -8,4 +8,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Running lscpu
-        run: sudo apt install nasm gcc make cmake xorriso  grub2
+        run: sudo apt install nasm gcc make cmake xorriso  grub2 && git clone https://github.com/Vizaxo/x86-os.git && cd x86-os && make build -j $(nproc) 
