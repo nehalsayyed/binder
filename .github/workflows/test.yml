@@ -1,37 +1,56 @@
-name: Run GIMP and Capture Screenshot
+name: Run GIMP and Capture Video
 
 on:
   workflow_dispatch:
 
 jobs:
-  gimp-screenshot:
+  gimp-video:
     runs-on: ubuntu-latest
 
     steps:
       - name: Install Dependencies
         run: |
+          # Install GIMP, Xvfb, and crucially, ffmpeg for video recording
           sudo apt-get update
-          sudo apt-get install -y gimp xvfb imagemagick
+          sudo apt-get install -y gimp xvfb ffmpeg
 
       - name: Start Xvfb
         run: |
           export DISPLAY=:99
+          # Start Xvfb with your desired resolution
           Xvfb :99 -screen 0 1920x1080x24 &
           echo "DISPLAY=:99" >> $GITHUB_ENV
           sleep 3
 
-      - name: Start GIMP in background
+      - name: Run GIMP and Record Video
         run: |
-          gimp &          # Launch GIMP
-          sleep 15        # Wait 15 seconds for GIMP to open
+          # 1. Start ffmpeg recording the Xvfb display in the background
+          # -f x11grab: input format is X11
+          # -r 10: set framerate to 10 FPS (you can adjust this)
+          # -s 1920x1080: specify the resolution
+          # -i :99.0: input is display :99, screen 0
+          # -c:v libx264 -pix_fmt yuv420p: standard video encoding settings
+          ffmpeg -f x11grab -r 10 -s 1920x1080 -i :99.0 -c:v libx264 -pix_fmt yuv420p output.mp4 &
+          FFMPEG_PID=$!
+          echo "FFMPEG_PID=$FFMPEG_PID" >> $GITHUB_ENV
+          sleep 1 # Give ffmpeg a moment to start
 
-      - name: Capture Screenshot
-        run: |
-          import -window root screenshot.png
+          # 2. Start the application
+          gimp &
 
-      - name: Upload Screenshot Artifact
+          # 3. Wait for the application to run and actions to be recorded
+          # IMPORTANT: Adjust this time (in seconds) based on the length of the activity you want to capture.
+          echo "Recording for 30 seconds..."
+          sleep 30
+
+          # 4. Stop the recording gracefully
+          kill $FFMPEG_PID
+          sleep 3 # Give ffmpeg time to finalize the video file
+
+      - name: Upload Video Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gimp-screen
-          path: screenshot.png
+          name: gimp-video-capture
+          path: output.mp4
+          retention-days: 7 # Optional: set how long the artifact should be kept
           
