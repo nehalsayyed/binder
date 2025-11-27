@@ -1,11 +1,37 @@
-name: Run test
+name: Run GIMP and Capture Screenshot
 
 on:
   workflow_dispatch:
 
 jobs:
-  run_cpu_info:
+  gimp-screenshot:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Running lscpu
-        run: sudo apt install nasm gcc make cmake xorriso  grub2 && git clone https://github.com/Vizaxo/x86-os.git && cd x86-os && make kernel -j $(nproc) 
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gimp xvfb imagemagick
+
+      - name: Start Xvfb
+        run: |
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1920x1080x24 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+          sleep 3
+
+      - name: Start GIMP in background
+        run: |
+          gimp &          # Launch GIMP
+          sleep 15        # Wait 15 seconds for GIMP to open
+
+      - name: Capture Screenshot
+        run: |
+          import -window root screenshot.png
+
+      - name: Upload Screenshot Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gimp-screen
+          path: screenshot.png
+          
