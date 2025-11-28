@@ -26,16 +26,16 @@ jobs:
 
     # 2. Clone the external repo
     - name: Clone NDK HelloWorld repo
-      run: git clone https://github.com/byronh/ndk-helloworld.git
+      run: git clone https://github.com/akash-rajak/Hello-World-with-Android-NDK.git
 
     # 3. Change into project directory
     - name: Change directory
-      run: cd ndk-helloworld && ls -la
+      run: cd Hello-World-with-Android-NDK && ls -la
 
     # 4. Build APK
     - name: Build APK
       run: |
-        cd ndk-helloworld
+        cd Hello-World-with-Android-NDK
         chmod +x gradlew
         ./gradlew assembleDebug
 
@@ -43,5 +43,5 @@ jobs:
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: ndk-helloworld-apk
-        path: ndk-helloworld/app/build/outputs/apk/debug/app-debug.apk
+        name: Hello-World-with-Android-NDK
+        path: Hello-World-with-Android-NDK/app/build/outputs/apk/debug/app-debug.apk
