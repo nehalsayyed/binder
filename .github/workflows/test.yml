@@ -25,11 +25,7 @@ jobs:
         path: ndk-helloworld 
 
     # 3. CRITICAL FIX: Update Gradle Version & URL
-    - name: Fix Broken Gradle Distribution URL
-      run: |
-        sed -i 's|https\\?://services.gradle.org/distributions/gradle-2.1-all.zip|https://services.gradle.org/distributions/gradle-8.5-all.zip|g' ndk-helloworld/gradle/wrapper/gradle-wrapper.properties
-        sed -i 's|2.1|8.5|g' ndk-helloworld/gradle/wrapper/gradle-wrapper.properties
-
+    
     # 4. Permissions: Ensure the Gradle wrapper is executable
     - name: Grant Execute Permission to gradlew
       run: chmod +x ndk-helloworld/gradlew
