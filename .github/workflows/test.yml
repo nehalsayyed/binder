@@ -1,47 +1,58 @@
 name: Build Android NDK Sample & Upload APK
 
 on:
+  # Allows manual execution from the GitHub Actions tab
   workflow_dispatch:
 
 jobs:
   android-apk:
+    # Use the latest Ubuntu runner environment
     runs-on: ubuntu-latest
     
     steps:
     
-    # 1. Set up the Java environment required by Gradle (Java 17 is standard for modern Android)
+    # 1. Setup: Install Java Runtime Environment (JRE)
+    # Required by Gradle to run the build script.
     - name: Set up Java Environment
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
 
-    # 2. Clone the official, maintained Google NDK Samples repository
-    - name: Clone Official NDK Samples Repository
+    # 2. Preparation: Clone the Repository (This step performs the git clone)
+    - name: Clone Requested Repository
       uses: actions/checkout@v4
       with:
-        # Using Google's official NDK samples repository for reliability
-        repository: android/ndk-samples
-        path: ndk-samples 
+        # Repository URL: https://github.com/byronh/ndk-helloworld.git (Requested URL)
+        repository: byronh/ndk-helloworld
+        # Place the repository files into the 'ndk-helloworld' directory
+        path: ndk-helloworld 
 
-    # 3. Grant Execute Permission to the Gradle wrapper inside the 'hello-jni' sample
+    # 3. CRITICAL FIX: Update Gradle Version
+    # The original project uses Gradle 2.1, which fails to download.
+    # We must force it to use a modern, working version (8.5) to avoid the "zip END header not found" error.
+    - name: Fix Broken Gradle Distribution URL
+      run: |
+        sed -i 's|gradle-2.1-all.zip|gradle-8.5-all.zip|g' ndk-helloworld/gradle/wrapper/gradle-wrapper.properties
+        sed -i 's|2.1|8.5|g' ndk-helloworld/gradle/wrapper/gradle-wrapper.properties
+        
+    # 4. Permissions: Ensure the Gradle wrapper is executable
     - name: Grant Execute Permission to gradlew
-      # We'll build the classic "hello-jni" example
-      run: chmod +x ndk-samples/hello-jni/gradlew
+      run: chmod +x ndk-helloworld/gradlew
 
-    # 4. Build the Debug APK using the modern sample
+    # 5. Build: Compile the Android Debug APK
     - name: Build Debug APK
       run: |
-        # Navigate into the specific sample directory
-        cd ndk-samples/hello-jni
-        # The Gradle wrapper will now reliably download a modern Gradle distribution
+        # Change directory to the sample project
+        cd ndk-helloworld
+        # Execute the patched Gradle wrapper to build the debug APK
         ./gradlew assembleDebug
 
-    # 5. Upload the generated APK artifact
+    # 6. Artifact: Upload the resulting file
     - name: Upload Generated APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: generated-debug-apk
-        # Correct path for the APK inside the new project structure
-        path: ndk-samples/hello-jni/app/build/outputs/apk/debug/app-debug.apk
+        # Path specific to the output of this project structure
+        path: ndk-helloworld/build/outputs/apk/ndk-helloworld-debug.apk
         retention-days: 7
