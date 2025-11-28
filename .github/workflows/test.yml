@@ -6,36 +6,30 @@ on:
 
 jobs:
   android-apk:
-    # Use the latest Ubuntu runner environment
     runs-on: ubuntu-latest
     
     steps:
     
     # 1. Setup: Install Java Runtime Environment (JRE)
-    # Required by Gradle to run the build script.
     - name: Set up Java Environment
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
 
-    # 2. Preparation: Clone the Repository (This step performs the git clone)
+    # 2. Preparation: Clone the Repository
     - name: Clone Requested Repository
       uses: actions/checkout@v4
       with:
-        # Repository URL: https://github.com/byronh/ndk-helloworld.git (Requested URL)
         repository: byronh/ndk-helloworld
-        # Place the repository files into the 'ndk-helloworld' directory
         path: ndk-helloworld 
 
-    # 3. CRITICAL FIX: Update Gradle Version
-    # The original project uses Gradle 2.1, which fails to download.
-    # We must force it to use a modern, working version (8.5) to avoid the "zip END header not found" error.
+    # 3. CRITICAL FIX: Update Gradle Version & URL
     - name: Fix Broken Gradle Distribution URL
       run: |
-        sed -i 's|gradle-2.1-all.zip|gradle-8.5-all.zip|g' ndk-helloworld/gradle/wrapper/gradle-wrapper.properties
+        sed -i 's|https\\?://services.gradle.org/distributions/gradle-2.1-all.zip|https://services.gradle.org/distributions/gradle-8.5-all.zip|g' ndk-helloworld/gradle/wrapper/gradle-wrapper.properties
         sed -i 's|2.1|8.5|g' ndk-helloworld/gradle/wrapper/gradle-wrapper.properties
-        
+
     # 4. Permissions: Ensure the Gradle wrapper is executable
     - name: Grant Execute Permission to gradlew
       run: chmod +x ndk-helloworld/gradlew
@@ -43,9 +37,7 @@ jobs:
     # 5. Build: Compile the Android Debug APK
     - name: Build Debug APK
       run: |
-        # Change directory to the sample project
         cd ndk-helloworld
-        # Execute the patched Gradle wrapper to build the debug APK
         ./gradlew assembleDebug
 
     # 6. Artifact: Upload the resulting file
@@ -53,6 +45,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: generated-debug-apk
-        # Path specific to the output of this project structure
-        path: ndk-helloworld/build/outputs/apk/ndk-helloworld-debug.apk
+        path: ndk-helloworld/app/build/outputs/apk/debug/app-debug.apk
         retention-days: 7
