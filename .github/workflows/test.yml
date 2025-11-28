@@ -37,7 +37,7 @@ jobs:
       run: |
         cd Hello-World-with-Android-NDK
         chmod +x gradlew
-        ./gradlew assembleDebug
+        gradle assembleDebug
 
     # 5. Upload artifact
     - name: Upload APK
