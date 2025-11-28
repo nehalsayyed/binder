@@ -1,71 +1,54 @@
-name: Install Android Studio (Snap) & Record UI
+name: Build Android NDK Sample & Upload APK
 
 on:
+  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
-  android-studio-video:
-    # Use a larger runner if possible, or expect long run times / potential failures.
+  android-apk:
+    # Fix 1: Corrected YAML structure for the job and runs-on property
     runs-on: ubuntu-latest
-    timeout-minutes: 60 # Set a long timeout for the entire job
-
+    
     steps:
-      - name: Install Dependencies
-        run: |
-          # Install Xvfb and ffmpeg for screen recording
-          sudo apt-get update
-          sudo apt-get install -y xvfb ffmpeg
-          
-          # Install snapd (it's usually pre-installed but good to ensure)
-          sudo apt-get install -y snapd
-          sudo snap install core
-          
-          # Install Android Studio via Snap (using --classic is essential)
-          # This command is often very slow (~5-10 minutes minimum)
-          echo "Installing Android Studio via snap. This may take a while..."
-          sudo snap install android-studio --classic
-          
-          # Ensure snap binaries are in the path for the rest of the job
-          export PATH=$PATH:/snap/bin
+    
+    # --- Environment Setup (Crucial for Android/Gradle) ---
 
-      - name: Start Xvfb
-        run: |
-          export DISPLAY=:99
-          # Start Xvfb with a common resolution
-          Xvfb :99 -screen 0 1920x1080x24 &
-          echo "DISPLAY=:99" >> $GITHUB_ENV
-          sleep 5 # Give Xvfb time to fully initialize
+    - name: Set up Java Environment
+      # Action to set up Java, required by Gradle.
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17' # Standard version for modern Android projects
 
-      - name: Run Android Studio and Record Video
-        run: |
-          # The name of the snap executable is typically the snap package name
-          APP_COMMAND="android-studio"
-          VIDEO_DURATION=60 # seconds to record the startup/activity
+    # --- Project Setup ---
 
-          # 1. Start ffmpeg recording the Xvfb display in the background
-          echo "Starting ffmpeg recording for ${VIDEO_DURATION} seconds..."
-          ffmpeg -f x11grab -r 10 -s 1920x1080 -i :99.0 -c:v libx264 -pix_fmt yuv420p output.mp4 &
-          FFMPEG_PID=$!
-          echo "FFMPEG_PID=$FFMPEG_PID" >> $GITHUB_ENV
-          sleep 1 # Give ffmpeg a moment to start
+    - name: Clone NDK Hello World Repository
+      # Fix 2: Using the recommended checkout action to clone the specific repo
+      uses: actions/checkout@v4
+      with:
+        repository: byronh/ndk-helloworld
+        path: ndk-helloworld # The local directory where the project will be placed
 
-          # 2. Start the Android Studio application
-          # The first run can take a very long time to extract and set up.
-          echo "Starting Android Studio..."
-          $APP_COMMAND &
+    - name: Grant Execute Permission to gradlew
+      # Gradle wrapper needs execute permission
+      run: chmod +x ndk-helloworld/gradlew
 
-          # 3. Wait for the application to run and actions to be recorded
-          echo "Recording startup activity for ${VIDEO_DURATION} seconds..."
-          sleep $VIDEO_DURATION
+    # --- Build Step ---
 
-          # 4. Stop the recording gracefully
-          kill $FFMPEG_PID
-          sleep 3 # Give ffmpeg time to finalize the video file
+    - name: Build Debug APK
+      # Runs the build command from inside the cloned directory
+      run: |
+        cd ndk-helloworld
+        # Using 'assembleDebug' to generate the debug APK
+        ./gradlew assembleDebug
+        # The NDK toolchain will be downloaded by Gradle automatically as needed.
 
-      - name: Upload Video Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-studio-snap-video
-          path: output.mp4
-          retention-days: 7
-          
+    # --- Artifact Upload ---
+
+    - name: Upload Video Artifact # Renamed artifact name to be more descriptive
+      uses: actions/upload-artifact@v4
+      with:
+        name: generated-debug-apk
+        # Fix 3: Added the correct path where the APK is located after a successful build
+        path: ndk-helloworld/app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 7
