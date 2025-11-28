@@ -1,54 +1,47 @@
 name: Build Android NDK Sample & Upload APK
 
 on:
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
   android-apk:
-    # Fix 1: Corrected YAML structure for the job and runs-on property
     runs-on: ubuntu-latest
     
     steps:
     
-    # --- Environment Setup (Crucial for Android/Gradle) ---
-
+    # 1. Set up the Java environment required by Gradle (Java 17 is standard for modern Android)
     - name: Set up Java Environment
-      # Action to set up Java, required by Gradle.
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '17' # Standard version for modern Android projects
+        java-version: '17'
 
-    # --- Project Setup ---
-
-    - name: Clone NDK Hello World Repository
-      # Fix 2: Using the recommended checkout action to clone the specific repo
+    # 2. Clone the official, maintained Google NDK Samples repository
+    - name: Clone Official NDK Samples Repository
       uses: actions/checkout@v4
       with:
-        repository: byronh/ndk-helloworld
-        path: ndk-helloworld # The local directory where the project will be placed
+        # Using Google's official NDK samples repository for reliability
+        repository: android/ndk-samples
+        path: ndk-samples 
 
+    # 3. Grant Execute Permission to the Gradle wrapper inside the 'hello-jni' sample
     - name: Grant Execute Permission to gradlew
-      # Gradle wrapper needs execute permission
-      run: chmod +x ndk-helloworld/gradlew
+      # We'll build the classic "hello-jni" example
+      run: chmod +x ndk-samples/hello-jni/gradlew
 
-    # --- Build Step ---
-
+    # 4. Build the Debug APK using the modern sample
     - name: Build Debug APK
-      # Runs the build command from inside the cloned directory
       run: |
-        cd ndk-helloworld
-        # Using 'assembleDebug' to generate the debug APK
+        # Navigate into the specific sample directory
+        cd ndk-samples/hello-jni
+        # The Gradle wrapper will now reliably download a modern Gradle distribution
         ./gradlew assembleDebug
-        # The NDK toolchain will be downloaded by Gradle automatically as needed.
 
-    # --- Artifact Upload ---
-
-    - name: Upload Video Artifact # Renamed artifact name to be more descriptive
+    # 5. Upload the generated APK artifact
+    - name: Upload Generated APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: generated-debug-apk
-        # Fix 3: Added the correct path where the APK is located after a successful build
-        path: ndk-helloworld/app/build/outputs/apk/debug/app-debug.apk
+        # Correct path for the APK inside the new project structure
+        path: ndk-samples/hello-jni/app/build/outputs/apk/debug/app-debug.apk
         retention-days: 7
