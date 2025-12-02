@@ -10,6 +10,8 @@ jobs:
      steps:
        - name: run
          run: |
-           sudo apt install firefox 
+           sudo apt install python3 -y
+           python3 -v venv
+           ./venv/bin/pip install torch 
            
        
