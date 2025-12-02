@@ -10,6 +10,6 @@ jobs:
      steps:
        - name: run
          run: |
-           lspci && lsusb && netstat
+           sudo apt install firefox 
            
        
