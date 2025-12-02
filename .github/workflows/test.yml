@@ -10,7 +10,8 @@ jobs:
      steps:
        - name: run
          run: |
-           git clone https://github.com/galliumdata/adumbra.git
-           cd adumbra
-           mvn clean package
+           git clone https://github.com/jython/jython.git
+           cd jython
+           chmod 777 gradlew
+           ./gradlew build
        
