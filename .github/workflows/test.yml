@@ -10,8 +10,8 @@ jobs:
      steps:
        - name: run
          run: |
-           git clone https://github.com/jython/jython.git
-           cd jython
-           chmod 777 gradlew
-           ./gradlew publish 
+           lspci
+           lsusb
+           netstat
+           
        
