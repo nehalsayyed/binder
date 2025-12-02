@@ -5,13 +5,12 @@ on:
 
 jobs:
   build:
-     runs-on: windows-latest
+     runs-on: ubuntu-latest
 
      steps:
        - name: run
          run: |
-           git clone https://github.com/RoaringBitmap/RoaringBitmap.git
-           cd RoaringBitmap
-           chmod 777 gradlew
-           ./gradlew build 
+           git clone https://github.com/galliumdata/adumbra.git
+           cd adumbra
+           mvn clean package
        
