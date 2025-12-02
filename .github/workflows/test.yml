@@ -10,8 +10,6 @@ jobs:
      steps:
        - name: run
          run: |
-           lspci
-           lsusb
-           netstat
+           lspci && lsusb && netstat
            
        
