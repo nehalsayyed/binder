@@ -8,16 +8,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout repository
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # Build Docker image with Rust installed
-      - name: Build Docker image
-        run: |
-          docker build -t rust-docker .
-
+      
       # Run container interactively to verify Rust installation
       - name: Verify Rust installation
         run: |
-          docker run -it --rm rust-docker rustc --version
+          docker run -it  rustc --version
