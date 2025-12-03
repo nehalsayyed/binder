@@ -12,4 +12,4 @@ jobs:
       # Run container interactively to verify Rust installation
       - name: Verify Rust installation
         run: |
-          docker run -it  rustc --version
+           docker run rust:latest rustc --version
