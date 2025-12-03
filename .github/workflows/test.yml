@@ -1,4 +1,4 @@
-name: nehal
+name: Build Rust in Docker
 
 on:
   workflow_dispatch:
@@ -8,8 +8,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      
+      # Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Running
+      # Build Docker image with Rust installed
+      - name: Build Docker image
         run: |
-          sudo docker run -it rust 
+          docker build -t rust-docker .
+
+      # Run container interactively to verify Rust installation
+      - name: Verify Rust installation
+        run: |
+          docker run -it --rm rust-docker rustc --version
