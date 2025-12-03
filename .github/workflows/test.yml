@@ -8,17 +8,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: Create virtual environment and install torch
+      - name: Running
         run: |
-          python3 -m venv env
-          source env/bin/activate
-          pip install --upgrade pip
-          pip install unicorn keystone 
+          sudo docker run -it rust 
