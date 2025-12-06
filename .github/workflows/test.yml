@@ -1,15 +1,35 @@
-name: Build Rust in Docker
+name: Blender Screenshot
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: windows-latest
+  blender-job:
+    runs-on: ubuntu-latest
 
     steps:
-      
-      # Run container interactively to verify Rust installation
-      - name: Verify Rust installation
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
         run: |
-           systeminfo
+          sudo apt-get update
+          sudo apt-get install -y blender xvfb x11-apps imagemagick
+
+      - name: Run Blender with xvfb and capture screenshot
+        run: |
+          # Start virtual framebuffer
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+
+          # Run Blender (example: open default scene)
+          blender --background --python-expr "print('Blender started successfully')" 
+
+          # Capture screenshot of the Xvfb display
+          import -window root screenshot.png
+
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-screenshot
+          path: screenshot.png
