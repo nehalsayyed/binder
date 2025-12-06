@@ -1,4 +1,4 @@
-name: Blender Screenshot
+name: Blender Video
 
 on:
   workflow_dispatch:
@@ -14,22 +14,23 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender xvfb x11-apps imagemagick
+          sudo apt-get install -y blender xvfb x11-apps ffmpeg
 
-      - name: Run Blender with xvfb and capture screenshot
+      - name: Run Blender with xvfb and record video
         run: |
           # Start virtual framebuffer
           Xvfb :99 -screen 0 1024x768x24 &
           export DISPLAY=:99
+          sleep 2
 
-          # Run Blender (example: open default scene)
-          blender --background --python-expr "print('Blender started successfully')" 
+          # Start Blender (example: open default scene in GUI mode)
+          blender --window-geometry 0 0 1024 768 &
 
-          # Capture screenshot of the Xvfb display
-          import -window root screenshot.png
+          # Record 30 seconds of the Xvfb display using ffmpeg
+          ffmpeg -y -video_size 1024x768 -framerate 25 -f x11grab -i :99 -t 30 blender-video.mp4
 
-      - name: Upload screenshot artifact
+      - name: Upload video artifact
         uses: actions/upload-artifact@v4
         with:
-          name: blender-screenshot
-          path: screenshot.png
+          name: blender-video
+          path: blender-video.mp4
