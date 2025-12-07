@@ -1,23 +1,22 @@
-name: test
+name: Check KVM Support
 
 on:
-  workflow_dispatch:
-
+  workflow_dispatch:   # allows manual trigger
+  
 jobs:
-  blender-job:
+  kvm-check:
     runs-on: ubuntu-latest
-
     steps:
-      
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Install
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gnat
+          docker build -t kvm-check .
 
-      - name: Run
+      - name: Run kvm-ok inside container
         run: |
-          gnat 
-
-          
-      
+          docker run --rm --device /dev/kvm kvm-check
