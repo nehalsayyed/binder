@@ -1,20 +1,44 @@
-name: Check KVM Support
+name: Run Kali Linux VM with KVM
 
 on:
-  workflow_dispatch:   # allows manual trigger
+  workflow_dispatch:   # manual trigger
 
 jobs:
-  kvm-check:
-    runs-on: ubuntu-latest
+  kali-vm:
+    runs-on: self-hosted   # must be a self-hosted runner with KVM support
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install cpu-checker
+      - name: Install QEMU and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cpu-checker
+          sudo apt-get install -y qemu-kvm libvirt-daemon-system virtinst bridge-utils cpu-checker
 
-      - name: Run kvm-ok
+      - name: Download Kali Linux minimal ISO
         run: |
-          kvm-ok || true
+          curl -L -o kali-mini.iso https://cdimage.kali.org/kali-2024.3/kali-linux-2024.3-mini-amd64.iso
+
+      - name: Create VM disk image
+        run: |
+          qemu-img create -f qcow2 kali-disk.qcow2 10G
+
+      - name: Boot Kali VM and run system info
+        run: |
+          # Launch VM headless with KVM acceleration
+          qemu-system-x86_64 \
+            -enable-kvm \
+            -m 2048 \
+            -cpu host \
+            -drive file=kali-disk.qcow2,format=qcow2 \
+            -cdrom kali-mini.iso \
+            -boot d \
+            -nographic &
+          
+          # Wait for VM to boot and then run commands via guestfish/expect/ssh
+          # (illustrative: assumes you have cloud-init or preseed to auto-install)
+          sleep 60
+          echo "VM launched. You would now connect via SSH or console to run:"
+          echo "    lscpu"
+          echo "    uname -a"
+          echo "    free -h"
