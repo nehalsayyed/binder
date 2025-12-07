@@ -1,4 +1,4 @@
-name: Blender Video
+name: test
 
 on:
   workflow_dispatch:
@@ -8,29 +8,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      
 
-      - name: Install dependencies
+      - name: Install
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender xvfb x11-apps ffmpeg
+          sudo apt-get install -y ffmpeg
 
       - name: Run Blender with xvfb and record video
         run: |
-          # Start virtual framebuffer
-          Xvfb :99 -screen 0 1024x768x24 &
-          export DISPLAY=:99
-          sleep 2
+          ffmpeg 
 
-          # Start Blender (example: open default scene in GUI mode)
-          blender --window-geometry 0 0 1024 768 &
-
-          # Record 30 seconds of the Xvfb display using ffmpeg
-          ffmpeg -y -video_size 1024x768 -framerate 25 -f x11grab -i :99 -t 30 blender-video.mp4
-
-      - name: Upload video artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: blender-video
-          path: blender-video.mp4
+          
+      
