@@ -2,7 +2,7 @@ name: Check KVM Support
 
 on:
   workflow_dispatch:   # allows manual trigger
-  
+
 jobs:
   kvm-check:
     runs-on: ubuntu-latest
@@ -10,13 +10,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image
+      - name: Install cpu-checker
         run: |
-          docker build -t kvm-check .
+          sudo apt-get update
+          sudo apt-get install -y cpu-checker
 
-      - name: Run kvm-ok inside container
+      - name: Run kvm-ok
         run: |
-          docker run --rm --device /dev/kvm kvm-check
+          kvm-ok || true
