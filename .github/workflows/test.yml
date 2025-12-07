@@ -5,7 +5,7 @@ on:
 
 jobs:
   kali-vm:
-    runs-on: self-hosted   # must be a self-hosted runner with KVM support
+    runs-on: ubuntu:latest   # must be a self-hosted runner with KVM support
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
