@@ -7,9 +7,7 @@ jobs:
   run-vm:
     runs-on: ubuntu:latest   # must be a self-hosted runner with KVM support
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
+      
       - name: Install QEMU and dependencies
         run: |
           sudo apt-get update
