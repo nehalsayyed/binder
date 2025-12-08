@@ -13,6 +13,6 @@ jobs:
 
       - name: install
         run: |
-          apt update 
+          sudo apt update 
 
       
