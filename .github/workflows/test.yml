@@ -4,13 +4,13 @@ on:
   workflow_dispatch:   # manual trigger
 
 jobs:
-  run-vm:
+  run:
     runs-on: ubuntu:latest   # must be a self-hosted runner with KVM support
     steps:
       
       - name: Install QEMU and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-kvm libvirt-daemon-system virtinst bridge-utils cpu-checker
+          
 
     
