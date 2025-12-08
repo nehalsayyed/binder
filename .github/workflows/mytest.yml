@@ -1,40 +1,18 @@
-name: Check KVM Availability
+name: test
 
 on:
   workflow_dispatch:   # Allows manual trigger
   
 
 jobs:
-  check-kvm:
+  run:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check CPU virtualization support
+      - name: install
         run: |
-          echo "Checking CPU virtualization support..."
-          egrep -c '(vmx|svm)' /proc/cpuinfo || true
+          apt update 
 
-      - name: Check if KVM modules are loaded
-        run: |
-          echo "Checking KVM modules..."
-          lsmod | grep kvm || echo "KVM modules not loaded"
-
-      - name: Verify /dev/kvm exists
-        run: |
-          echo "Checking /dev/kvm..."
-          if [ -e /dev/kvm ]; then
-            echo "/dev/kvm exists ✅"
-          else
-            echo "/dev/kvm not found ❌"
-          fi
-
-      - name: Print KVM version (if available)
-        run: |
-          echo "Checking KVM version..."
-          if command -v kvm-ok >/dev/null 2>&1; then
-            kvm-ok || true
-          else
-            echo "kvm-ok command not available"
-          fi
+      
