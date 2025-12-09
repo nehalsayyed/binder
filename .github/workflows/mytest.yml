@@ -10,22 +10,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'   # Eclipse Temurin (AdoptOpenJDK successor)
-          java-version: '17'
+      
+      - name: Run
+        run: apt update && apt install wget unzip -y && wget https://github.com/fastfetch-cli/fastfetch/releases/download/2.56.0/fastfetch-linux-amd64.zip && unzip fastfetch-linux-amd64.zip && ./fastfetch-linux-amd64/usr/bin/fastfetch
 
-      - name: Cache Maven packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Compile with Maven
-        run: mvn -B compile
-
-      - name: Run Main with Maven
-        run: mvn -B exec:java
