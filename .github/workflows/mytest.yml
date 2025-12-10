@@ -10,5 +10,8 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v4
       - name: Set up kotlin
-        uses: actions/java@v4
-      - run: java --version
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - run: java --version && java Main.java
