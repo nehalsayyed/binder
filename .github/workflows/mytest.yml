@@ -7,10 +7,11 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Clone repository
         uses: actions/checkout@v4
-
-      
-      - name: Run
-        run: sudo apt update && sudo apt install wget unzip -y && wget https://github.com/fastfetch-cli/fastfetch/releases/download/2.56.0/fastfetch-linux-amd64.zip && unzip fastfetch-linux-amd64.zip && ./fastfetch-linux-amd64/usr/bin/fastfetch && watch uptime
-
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.19.0
+      - run: flutter --version
