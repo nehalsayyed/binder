@@ -10,5 +10,5 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v4
       - name: Set up kotlin
-        uses: kotlin/native@v1
-      - run: kotlinc --version
+        uses: actions/java@v4
+      - run: java --version
