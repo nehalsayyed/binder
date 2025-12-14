@@ -1,18 +1,44 @@
-name: test
+name: Chromium Screenshot
 
 on:
-  workflow_dispatch:   # Allows manual trigger
+  workflow_dispatch:   # allows manual trigger
+                  # or run on push
 
 jobs:
-  run:
+  screenshot:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Clone repository
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Set up kotlin
-        uses: actions/setup-java@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            xvfb \
+            chromium-browser \
+            x11-utils \
+            imagemagick \
+            xdotool
+
+      - name: Run Chromium with xvfb and take screenshot
+        run: |
+          # Start xvfb in background
+          Xvfb :99 -screen 0 1280x1024x24 &
+          export DISPLAY=:99
+
+          # Run chromium headless to visit GitHub URL
+          chromium-browser --no-sandbox --disable-gpu --window-size=1280,1024 https://github.com &
+
+          # Give browser time to load
+          sleep 10
+
+          # Take screenshot of the virtual framebuffer
+          import -window root screenshot.png
+
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@v4
         with:
-          distribution: 'temurin'
-          java-version: '21'
-      - run: java --version && java Main.java
-      - run: sudo apt update && sudo apt install neofetch -y && neofetch
+          name: github-screenshot
+          path: screenshot.png
