@@ -2,17 +2,18 @@ name: Run
 
 on:
   workflow_dispatch:   # allows manual trigger
-                  # or run on push
+  push:                # run on push
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: rust
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: run
-        run: |
-          cargo -V
-          
+      - name: Set up Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Show Cargo version
+        run: cargo -V
