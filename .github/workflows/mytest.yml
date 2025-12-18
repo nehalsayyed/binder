@@ -9,5 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-       - name: Show Cargo version
-         run: docker
+       - name: Running 
+         run: |
+            git clone https://github.com/Didstopia/rust-server.git
+            cd rust-server
+            chmod 777 docker_build.sh
+            chmod 777 docker_run
+            ./docker_build.sh
+            ./docker_run.sh
