@@ -14,6 +14,6 @@ jobs:
             git clone https://github.com/Didstopia/rust-server.git
             cd rust-server
             chmod 777 docker_build.sh
-            chmod 777 docker_run
+            chmod 777 docker_run.sh
             ./docker_build.sh
             ./docker_run.sh
