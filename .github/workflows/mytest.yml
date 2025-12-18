@@ -1,4 +1,4 @@
-name: Chromium Screenshot
+name: Run
 
 on:
   workflow_dispatch:   # allows manual trigger
@@ -9,36 +9,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: rust
+        uses: actions/setup-rust@v1
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            xvfb \
-            chromium-browser \
-            x11-utils \
-            imagemagick \
-            xdotool
-
-      - name: Run Chromium with xvfb and take screenshot
-        run: |
-          # Start xvfb in background
-          Xvfb :99 -screen 0 1280x1024x24 &
-          export DISPLAY=:99
-
-          # Run chromium headless to visit GitHub URL
-          chromium-browser --no-sandbox --disable-gpu --window-size=1280,1024 https://github.com &
-
-          # Give browser time to load
-          sleep 10
-
-          # Take screenshot of the virtual framebuffer
-          import -window root screenshot.png
-
-      - name: Upload screenshot artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: github-screenshot
-          path: screenshot.png
+          cargo -V
+          
