@@ -2,7 +2,7 @@ name: Run
 
 on:
   workflow_dispatch:   # allows manual trigger
-  push:                # run on push
+                  # run on push
 
 jobs:
   test:
