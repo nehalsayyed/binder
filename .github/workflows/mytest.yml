@@ -1,19 +1,45 @@
-name: Run
+name: Build Linux Kernel (allyesconfig, x86_64)
 
 on:
-  workflow_dispatch:   # allows manual trigger
-                  # run on push
+  workflow_dispatch:
+  
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-       - name: Running 
-         run: |
-            git clone https://github.com/Didstopia/rust-server.git
-            cd rust-server
-            chmod 777 docker_build.sh
-            chmod 777 docker_run.sh
-            ./docker_build.sh
-            ./docker_run.sh
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential flex bison libncurses-dev \
+            libssl-dev bc wget git
+
+      - name: Download Linux kernel
+        run: |
+          git clone --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+          cd linux
+          echo "Linux kernel source downloaded"
+
+      - name: Configure kernel (allyesconfig for x86_64)
+        run: |
+          cd linux
+          make ARCH=x86_64 mrproper
+          make ARCH=x86_64 allyesconfig
+
+      - name: Build kernel (x86_64)
+        run: |
+          cd linux
+          make ARCH=x86_64 -j$(nproc)
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-kernel-build-x86_64
+          path: |
+            linux/arch/x86/boot/
+            linux/vmlinux
+            linux/.config
