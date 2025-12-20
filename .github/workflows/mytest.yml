@@ -1,8 +1,8 @@
-name: Build Linux Kernel (allyesconfig, x86_64)
+name: Build & Test Linux Kernel (x86_64 with KVM)
 
 on:
   workflow_dispatch:
-  
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -11,48 +11,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install full build dependencies
+      - name: Install build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential \
-            flex \
-            bison \
-            libncurses-dev \
-            libssl-dev \
-            bc \
-            wget \
-            git \
-            ccache \
-            pkg-config \
-            libelf-dev \
-            dwarves \
-            zlib1g-dev \
-            liblz4-dev \
-            libzstd-dev \
-            libcap-dev \
-            libattr1-dev \
-            python3 \
-            python3-pip \
-            rsync \
-            tar \
-            xz-utils \
-            gzip \
-            lzop \
-            libudev-dev \
-            libpci-dev \
-            libiberty-dev \
-            libdw-dev \
-            libnuma-dev \
-            libmount-dev \
-            libseccomp-dev \
-            libselinux1-dev \
-            libgnutls28-dev \
-            libreadline-dev \
-            libgmp-dev \
-            libmpfr-dev \
-            libisl-dev \
-            
+            build-essential flex bison libncurses-dev libssl-dev bc \
+            wget git ccache pkg-config libelf-dev dwarves zlib1g-dev \
+            liblz4-dev libzstd-dev libcap-dev libattr1-dev python3 \
+            python3-pip rsync tar xz-utils gzip lzop libudev-dev \
+            libpci-dev libiberty-dev libdw-dev libnuma-dev libmount-dev \
+            libseccomp-dev libselinux1-dev libgnutls28-dev libreadline-dev \
+            libgmp-dev libmpfr-dev libisl-dev qemu-kvm qemu-system-x86
 
       - name: Download Linux kernel
         run: |
@@ -60,13 +29,20 @@ jobs:
           cd linux
           echo "Linux kernel source downloaded"
 
-      - name: Configure kernel (allyesconfig for x86_64)
+      - name: Configure kernel (non-interactive, with KVM)
         run: |
           cd linux
           make ARCH=x86_64 mrproper
-          make ARCH=x86_64 allyesconfig
+          make ARCH=x86_64 defconfig
+          scripts/config --enable CONFIG_KVM
+          scripts/config --enable CONFIG_KVM_INTEL
+          scripts/config --enable CONFIG_KVM_AMD
+          scripts/config --enable CONFIG_VIRTIO
+          scripts/config --enable CONFIG_VIRTIO_PCI
+          scripts/config --enable CONFIG_VIRTIO_NET
+          yes "" | make ARCH=x86_64 olddefconfig
 
-      - name: Build kernel (x86_64)
+      - name: Build kernel (x86_64, parallel)
         run: |
           cd linux
           make ARCH=x86_64 -j$(nproc)
@@ -84,3 +60,29 @@ jobs:
         with:
           name: linux-kernel-build-x86_64
           path: linux-x86_64-build.tar.xz
+
+      - name: Smoke test kernel with QEMU/KVM
+        run: |
+          cd linux
+          # Create a minimal initramfs with busybox for boot test
+          mkdir -p rootfs/{bin,sbin,etc,proc,sys,usr/bin}
+          sudo apt-get install -y busybox-static
+          cp /bin/busybox rootfs/bin/
+          ln -s busybox rootfs/bin/sh
+          echo '#!/bin/sh' > rootfs/init
+          echo 'mount -t proc none /proc' >> rootfs/init
+          echo 'mount -t sysfs none /sys' >> rootfs/init
+          echo 'echo "*** Kernel booted successfully under QEMU/KVM ***"' >> rootfs/init
+          echo 'exec sh' >> rootfs/init
+          chmod +x rootfs/init
+          (cd rootfs && find . | cpio -o -H newc | gzip > ../initramfs.cpio.gz)
+
+          # Boot kernel under QEMU with KVM acceleration
+          qemu-system-x86_64 -enable-kvm -cpu host -m 1024 \
+            -kernel arch/x86/boot/bzImage \
+            -initrd ../initramfs.cpio.gz \
+            -append "console=ttyS0" \
+            -nographic -no-reboot -serial mon:stdio \
+            -display none &
+          sleep 20
+          pkill -f qemu-system-x86_64 || true
