@@ -52,7 +52,7 @@ jobs:
             libgmp-dev \
             libmpfr-dev \
             libisl-dev \
-            libcloog-isl-dev
+            
 
       - name: Download Linux kernel
         run: |
