@@ -6,4 +6,4 @@ jobs:
   info:
     runs-on: ubuntu-24.04-arm
     steps:
-      - run: lsusb && lspci
+      - run: git --version 
