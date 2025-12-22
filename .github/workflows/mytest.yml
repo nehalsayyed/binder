@@ -1,17 +1,9 @@
-name: Build & Test Linux Kernel (x86_64 with KVM)
+name: macOS Info
 
-on:
-  workflow_dispatch:
+on: workflow_dispatch
 
 jobs:
-  build:
-    runs-on: macos:latest 
-
+  info:
+    runs-on: macos-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install build dependencies
-        run: |
-          uname -a 
-          
+      - run: uname -a && sw_vers && system_profiler SPSoftwareDataType
