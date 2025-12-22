@@ -13,5 +13,5 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get update && sudo apt-get install neofetch && neofetch 
           
