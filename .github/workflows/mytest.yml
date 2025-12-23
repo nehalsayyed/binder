@@ -1,4 +1,4 @@
-name: macOS Info
+name: build arm
 
 on: workflow_dispatch
 
@@ -6,4 +6,4 @@ jobs:
   info:
     runs-on: ubuntu-24.04-arm
     steps:
-      - run: docker 
+      - run: apt update && apt install neofetch -y && neofetch 
