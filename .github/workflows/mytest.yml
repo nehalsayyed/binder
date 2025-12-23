@@ -6,4 +6,4 @@ jobs:
   info:
     runs-on: ubuntu-24.04-arm
     steps:
-      - run: apt update && apt install neofetch -y && neofetch 
+      - run: sudo apt update && sudo apt install neofetch -y && neofetch 
