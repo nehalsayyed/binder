@@ -6,4 +6,11 @@ jobs:
   info:
     runs-on: ubuntu-24.04-arm
     steps:
-      - run: sudo apt update && sudo apt install neofetch -y && neofetch 
+      - run: git clone https://github.com/getzola/zola.git && cd zola && cargo build --release 
+      
+      
+      - name: Upload atrifact 
+        uses: action/upload-artifact@v4
+        with:
+            name: output 
+            path: target 
