@@ -10,7 +10,7 @@ jobs:
       
       
       - name: Upload atrifact 
-        uses: action/upload-artifact@v4
+        uses: action/upload-artifacts@v4
         with:
             name: output 
             path: target 
