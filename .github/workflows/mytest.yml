@@ -9,7 +9,7 @@ jobs:
       
       - name: Run
         run: |
-         chocolatey install fastfetch
+         choco install fastfetch
          fastfetch 
           
 
