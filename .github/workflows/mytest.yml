@@ -4,19 +4,13 @@ on: workflow_dispatch
 
 jobs:
   info:
-    runs-on: ubuntu-24.04-arm
+    runs-on: windows-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Build Zola
+      
+      - name: Run
         run: |
-          git clone https://github.com/getzola/zola.git
-          cd zola
-          cargo build --release
+         chocolatey install fastfetch
+         fastfetch 
+          
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: output
-          path: zola/target/release
+      
