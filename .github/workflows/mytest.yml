@@ -6,11 +6,17 @@ jobs:
   info:
     runs-on: ubuntu-24.04-arm
     steps:
-      - run: git clone https://github.com/getzola/zola.git && cd zola && cargo build --release 
-      
-      
-      - name: Upload atrifact 
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Zola
+        run: |
+          git clone https://github.com/getzola/zola.git
+          cd zola
+          cargo build --release
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-            name: output 
-            path: target 
+          name: output
+          path: zola/target/release
