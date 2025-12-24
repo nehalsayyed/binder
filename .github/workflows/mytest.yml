@@ -1,16 +1,1 @@
-name: build arm
 
-on: workflow_dispatch
-
-jobs:
-  info:
-    runs-on: macos-latest
-    steps:
-      
-      - name: Run
-        run: |
-         brew install fastfetch
-         fastfetch 
-          
-
-      
