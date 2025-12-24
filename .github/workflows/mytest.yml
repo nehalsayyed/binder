@@ -1,1 +1,40 @@
 
+name: Build and Capture GUI C
+
+on:
+  workflow_dispatch:
+jobs:
+  build-run-capture:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make xvfb imagemagick libx11-dev
+
+      - name: Build GUI program
+        run: |
+          gcc gui.c -o gui -lX11
+
+      - name: Run GUI program with Xvfb
+        run: |
+          # Start virtual framebuffer
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          # Run GUI program
+          ./gui &
+          sleep 6
+          # Capture screenshot
+          import -window root screenshot.png
+
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gui-screenshot
+          path: screenshot.png
+
+          
