@@ -1,10 +1,10 @@
-
-name: Build and Capture GUI C
+name: Install and Capture Android Studio
 
 on:
   workflow_dispatch:
+
 jobs:
-  build-run-capture:
+  android-studio-capture:
     runs-on: ubuntu-latest
 
     steps:
@@ -14,27 +14,27 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc make xvfb imagemagick libx11-dev
+          sudo apt-get install -y wget unzip xvfb imagemagick openjdk-17-jdk
 
-      - name: Build GUI program
+      - name: Download Android Studio
         run: |
-          gcc gui.c -o gui -lX11
+          # Download latest Android Studio (Linux tar.gz)
+          wget https://redirector.gvt1.com/edgedl/android/studio/ide-zips/2024.1.1.12/android-studio-2024.1.1.12-linux.tar.gz -O android-studio.tar.gz
+          tar -xzf android-studio.tar.gz
+          mv android-studio* android-studio
 
-      - name: Run GUI program with Xvfb
+      - name: Run Android Studio with Xvfb
         run: |
-          # Start virtual framebuffer
-          Xvfb :99 -screen 0 1024x768x24 &
+          Xvfb :99 -screen 0 1280x1024x24 &
           export DISPLAY=:99
-          # Run GUI program
-          ./gui &
-          sleep 6
+          # Launch Android Studio briefly
+          ./android-studio/bin/studio.sh &
+          sleep 20
           # Capture screenshot
-          import -window root screenshot.png
+          import -window root android-studio.png
 
       - name: Upload screenshot artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gui-screenshot
-          path: screenshot.png
-
-          
+          name: android-studio-screenshot
+          path: android-studio.png
