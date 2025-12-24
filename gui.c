@@ -1,10 +1,14 @@
 // gui.c
 #include <X11/Xlib.h>
 #include <unistd.h>
+#include <stdio.h>
 
 int main() {
     Display *d = XOpenDisplay(NULL);
-    if (!d) return 1;
+    if (!d) {
+        fprintf(stderr, "Cannot open display\n");
+        return 1;
+    }
 
     int s = DefaultScreen(d);
 
@@ -13,36 +17,44 @@ int main() {
                                    10, 10, 200, 200, 4,
                                    BlackPixel(d, s), WhitePixel(d, s));
 
+    // Select input events so we get Expose
+    XSelectInput(d, w, ExposureMask);
+
     // Map window
     XMapWindow(d, w);
 
     // Create a graphics context
     GC gc = XCreateGC(d, w, 0, NULL);
 
-    // Allocate some RGB colors
+    // Allocate colors
     Colormap cmap = DefaultColormap(d, s);
     XColor red, green, blue;
     XAllocNamedColor(d, cmap, "red", &red, &red);
     XAllocNamedColor(d, cmap, "green", &green, &green);
     XAllocNamedColor(d, cmap, "blue", &blue, &blue);
 
-    // Fill background with red
-    XSetForeground(d, gc, red.pixel);
-    XFillRectangle(d, w, gc, 0, 0, 200, 200);
+    // Event loop: wait for expose then draw
+    for (;;) {
+        XEvent e;
+        XNextEvent(d, &e);
+        if (e.type == Expose) {
+            // Fill background red
+            XSetForeground(d, gc, red.pixel);
+            XFillRectangle(d, w, gc, 0, 0, 200, 200);
 
-    // Draw a green square border
-    XSetForeground(d, gc, green.pixel);
-    XDrawRectangle(d, w, gc, 10, 10, 180, 180);
+            // Draw green border
+            XSetForeground(d, gc, green.pixel);
+            XDrawRectangle(d, w, gc, 10, 10, 180, 180);
 
-    // Draw a smaller blue square inside
-    XSetForeground(d, gc, blue.pixel);
-    XDrawRectangle(d, w, gc, 50, 50, 100, 100);
+            // Draw blue inner square
+            XSetForeground(d, gc, blue.pixel);
+            XDrawRectangle(d, w, gc, 50, 50, 100, 100);
 
-    // Flush to display
-    XFlush(d);
+            XFlush(d);
+            break; // done drawing once
+        }
+    }
 
-    // Keep window visible for 5 seconds
-    sleep(5);
-
+    sleep(5); // keep window visible
     return 0;
 }
