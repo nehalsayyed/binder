@@ -1,4 +1,4 @@
-name: Install and Capture Android Studio
+name: Run
 
 on:
   workflow_dispatch:
@@ -13,28 +13,4 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget unzip xvfb imagemagick openjdk-17-jdk
-
-      - name: Download Android Studio
-        run: |
-          # Download latest Android Studio (Linux tar.gz)
-          wget https://redirector.gvt1.com/edgedl/android/studio/ide-zips/2024.1.1.12/android-studio-2024.1.1.12-linux.tar.gz -O android-studio.tar.gz
-          tar -xzf android-studio.tar.gz
-          mv android-studio* android-studio
-
-      - name: Run Android Studio with Xvfb
-        run: |
-          Xvfb :99 -screen 0 1280x1024x24 &
-          export DISPLAY=:99
-          # Launch Android Studio briefly
-          ./android-studio/bin/studio.sh &
-          sleep 20
-          # Capture screenshot
-          import -window root android-studio.png
-
-      - name: Upload screenshot artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-studio-screenshot
-          path: android-studio.png
+              sudo lshw -C display
