@@ -13,4 +13,4 @@ jobs:
 
       - name: Install dependencies
         run: |
-              sudo lshw -C display
+              sudo lshw
