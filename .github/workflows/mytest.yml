@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 jobs:
   build-arm64:
-    runs-on: ubuntu-24.04-arm64   # GitHub-hosted ARM64 runner
+    runs-on: ubuntu-24.04-arm   # GitHub-hosted ARM64 runner
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
