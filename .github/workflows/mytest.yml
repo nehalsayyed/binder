@@ -1,16 +1,31 @@
-name: Run
+name: Build ARM64 and Upload Artifact
 
 on:
   workflow_dispatch:
-
 jobs:
-  android-studio-capture:
-    runs-on: ubuntu-latest
-
+  build-arm64:
+    runs-on: ubuntu-24.04-arm64   # GitHub-hosted ARM64 runner
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-              sudo lshw
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            python3
+
+      - name: Build host tool
+        working-directory: src
+        run: gcc build.c -o build
+
+      - name: Compile project (native ARM64)
+        working-directory: src
+        run: ./build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cake-arm64-build
+          path: src/build/**
