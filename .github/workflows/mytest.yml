@@ -8,17 +8,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up JDK
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
+          distribution: 'temurin'   # Corrected: required input
           java-version: '17'
 
       - name: Install Android SDK
         run: |
           sudo apt-get update
           sudo apt-get install -y qemu-kvm
-          sdkmanager --install "platform-tools" "platforms;android-36" "system-images;android-36;google_apis;x86_64" "emulator"
-          sdkmanager --licenses
+          yes | sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-36" \
+            "system-images;android-36;google_apis;x86_64" \
+            "emulator"
+          yes | sdkmanager --licenses
 
       - name: Create and Start Emulator
         run: |
