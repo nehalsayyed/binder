@@ -1,33 +1,42 @@
-name: Build ARM64 and Upload Artifact
+name: Android Emulator Boot and Record (API 36)
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-arm64:
-    runs-on: ubuntu-24.04-arm
+  emulator:
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Install dependencies
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+
+      - name: Install Android SDK
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            python3 \
-            git
+          sudo apt-get install -y qemu-kvm
+          sdkmanager --install "platform-tools" "platforms;android-36" "system-images;android-36;google_apis;x86_64" "emulator"
+          sdkmanager --licenses
 
-      - name: Clone cake repo
-        run: git clone https://github.com/thradams/cake.git
+      - name: Create and Start Emulator
+        run: |
+          avdmanager create avd -n api36 -k "system-images;android-36;google_apis;x86_64" --device "pixel_5"
+          nohup emulator -avd api36 -no-window -no-audio -no-snapshot &
+          adb wait-for-device
+          adb shell input keyevent 82
 
-      - name: Build host tool
-        working-directory: cake/src
-        run: gcc build.c -o build
+      - name: Record Emulator Boot Video
+        run: |
+          adb shell screenrecord /sdcard/boot_api36.mp4 &
+          RECORD_PID=$!
+          sleep 30   # record for 30 seconds
+          kill $RECORD_PID
+          adb pull /sdcard/boot_api36.mp4 boot_api36.mp4
 
-      - name: Compile project (native ARM64)
-        working-directory: cake/src
-        run: ./build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload Video Artifact
+        uses: actions/upload-artifact@v3
         with:
-          name: cake-arm64-build
-          path: cake/src/build/**
+          name: emulator-boot-video-api36
+          path: boot_api36.mp4
