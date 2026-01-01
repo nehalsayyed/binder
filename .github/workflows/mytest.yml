@@ -7,6 +7,10 @@ jobs:
   emulator:
     runs-on: ubuntu-latest
 
+    env:
+      ANDROID_HOME: /usr/local/android-sdk
+      PATH: /usr/local/android-sdk/cmdline-tools/latest/bin:/usr/local/android-sdk/platform-tools:/usr/local/android-sdk/emulator:$PATH
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -14,32 +18,40 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'   # Corrected: required input
+          distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Android SDK
+      - name: Install Android Command Line Tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-kvm
+          sudo mkdir -p $ANDROID_HOME
+          cd $ANDROID_HOME
+          curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip commandlinetools.zip -d cmdline-tools
+          rm commandlinetools.zip
+          mv cmdline-tools/cmdline-tools cmdline-tools/latest
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+
+      - name: Install Emulator and System Image
+        run: |
           yes | sdkmanager --install \
             "platform-tools" \
             "platforms;android-36" \
             "system-images;android-36;google_apis;x86_64" \
             "emulator"
-          yes | sdkmanager --licenses
 
       - name: Create and Start Emulator
         run: |
           avdmanager create avd -n api36 -k "system-images;android-36;google_apis;x86_64" --device "pixel_5"
           nohup emulator -avd api36 -no-window -no-audio -no-snapshot &
           adb wait-for-device
+          # unlock screen
           adb shell input keyevent 82
 
-      - name: Record Emulator Boot Video
+      - name: Record Emulator Boot Video (5 minutes)
         run: |
           adb shell screenrecord /sdcard/boot_api36.mp4 &
           RECORD_PID=$!
-          sleep 30   # record for 30 seconds
+          sleep 300   # record for 5 minutes
           kill $RECORD_PID
           adb pull /sdcard/boot_api36.mp4 boot_api36.mp4
 
