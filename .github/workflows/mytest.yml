@@ -1,58 +1,71 @@
-name: Android 16 Ubuntu Fixed
+name: Manual Android 16 Record
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows you to run this manually from the Actions tab
 
 jobs:
-  test:
+  android-test:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Recording Tools
+      - name: Install Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg x11-utils
 
-      - name: Run Emulator & FFmpeg
+      - name: Run Emulator and Record
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
           api-level: 36
           target: google_apis
           arch: x86_64
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          force-avd-creation: true
+          # Optimized for Ubuntu/KVM performance
+          emulator-options: >-
+            -no-window 
+            -gpu swiftshader_indirect 
+            -noaudio 
+            -no-boot-anim 
+            -memory 3072 
+            -no-snapshot
           disable-animations: true
           script: |
-            # 1. Start FFmpeg with 'soft' termination handling
-            # -y overwrites existing, -t 300 sets a hard 5-min limit
-            echo "Starting recording..."
-            ffmpeg -y -f x11grab -video_size 1280x720 -i :99.0 -codec:v libx264 -pix_fmt yuv420p test_run.mp4 &
+            # 1. Wait for basic adb connectivity
+            adb wait-for-device
+            
+            # 2. Start FFmpeg recording from Xvfb display :99
+            # We use a 1280x720 canvas to match standard emulator scales
+            echo "Recording started on display :99..."
+            ffmpeg -y -f x11grab -video_size 1280x720 -i :99.0 \
+              -codec:v libx264 -pix_fmt yuv420p -r 24 test_output.mp4 &
             FFMPEG_PID=$!
-            
-            # 2. Run your tests
-            # We use a subshell so we can capture the exit code
-            ./gradlew connectedCheck || EXIT_CODE=$?
 
-            # 3. Graceful Shutdown of FFmpeg
-            # Sending SIGINT (Ctrl+C) allows FFmpeg to finalize the MP4 header
-            echo "Finalizing video file..."
-            kill -2 $FFMPEG_PID
+            # 3. Wait for the system to actually be usable (The 'Home' screen)
+            echo "Waiting for Android Home Screen..."
+            timeout 300 adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 5; done'
             
-            # Wait for FFmpeg to actually exit
+            # --- START YOUR ACTIONS HERE ---
+            # Example: Unlock screen and wait
+            adb shell input keyevent 82 
+            sleep 10
+            # Run your tests or scripts
+            ./gradlew connectedCheck || EXIT_CODE=$?
+            # --- END YOUR ACTIONS HERE ---
+
+            # 4. Gracefully stop recording
+            echo "Finalizing video..."
+            kill -2 $FFMPEG_PID
             wait $FFMPEG_PID || true
             
-            # 4. Verify file exists before finishing the script
-            ls -lh test_run.mp4
-            
-            # Exit with the test code so the UI shows if tests failed
             exit ${EXIT_CODE:-0}
 
-      - name: Upload Recording
+      - name: Upload Video
         uses: actions/upload-artifact@v4
-        if: always() 
+        if: always()
         with:
-          name: android-16-video
-          # Use a wildcard to ensure it picks up the file even if naming varies
-          path: "*.mp4"
+          name: emulator-video-api36
+          path: test_output.mp4
           retention-days: 5
           
