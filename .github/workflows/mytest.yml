@@ -1,4 +1,4 @@
-name: Android Emulator Screenshot
+name: Android Emulator Video Capture
 
 on:
   workflow_dispatch:   # run manually
@@ -30,7 +30,7 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      # 5. Install system image for Android 15 (API 35)
+      # 5. Install system image for Android 15 (API 35) + emulator
       - name: Install system image
         run: |
           sdkmanager --install "system-images;android-35;google_apis;x86_64"
@@ -43,22 +43,27 @@ jobs:
         run: |
           echo "no" | avdmanager create avd -n test_avd -k "system-images;android-35;google_apis;x86_64" --device "pixel_5"
 
-      # 7. Start emulator with xvfb
+      # 7. Add emulator to PATH
+      - name: Add emulator to PATH
+        run: echo "$ANDROID_HOME/emulator" >> $GITHUB_PATH
+
+      # 8. Start emulator with xvfb
       - name: Start emulator
         run: |
           nohup xvfb-run -a emulator -avd test_avd -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect &
-          # wait for boot
           adb wait-for-device
-          adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
+          # wait until boot completed
+          until adb shell getprop sys.boot_completed | grep -q "1"; do sleep 5; done
 
-      # 8. Capture screenshot
-      - name: Capture screenshot
+      # 9. Capture 20-second video
+      - name: Capture video
         run: |
-          adb exec-out screencap -p > screenshot.png
+          adb shell screenrecord --time-limit 20 /sdcard/demo.mp4
+          adb pull /sdcard/demo.mp4 demo.mp4
 
-      # 9. Upload artifact
-      - name: Upload screenshot artifact
+      # 10. Upload artifact
+      - name: Upload video artifact
         uses: actions/upload-artifact@v4
         with:
-          name: emulator-screenshot
-          path: screenshot.png
+          name: emulator-video
+          path: demo.mp4
