@@ -41,7 +41,9 @@ jobs:
       # 6. Create AVD
       - name: Create AVD
         run: |
-          echo "no" | avdmanager create avd -n test_avd -k "system-images;android-35;google_apis;x86_64" --device "pixel_5"
+          echo "no" | avdmanager create avd -n test_avd \
+            -k "system-images;android-35;google_apis;x86_64" \
+            --device "pixel_5"
 
       # 7. Add emulator to PATH
       - name: Add emulator to PATH
