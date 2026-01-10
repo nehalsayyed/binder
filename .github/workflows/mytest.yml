@@ -1,54 +1,88 @@
-name: Android Emulator Video Capture
+name: Android 15 Emulator Record
 
 on:
   workflow_dispatch:
 
 jobs:
-  emulator-test:
+  android-emulator-record:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      API_LEVEL: 35
+      TARGET: google_apis
+      ARCH: x86_64
+      EMULATOR_NAME: android15
+      VIDEO_NAME: emulator-recording.mp4
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y xvfb
+      - name: Enable KVM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-kvm
+          sudo chmod 666 /dev/kvm
 
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Set up Android SDK
+      - name: Install Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install system image + emulator
+      - name: Install emulator and system image
         run: |
-          sdkmanager --install "system-images;android-35;google_apis;x86_64" "platforms;android-35" "platform-tools" "emulator"
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-${API_LEVEL}" \
+            "emulator" \
+            "system-images;android-${API_LEVEL};${TARGET};${ARCH}"
 
       - name: Create AVD
         run: |
-          echo "no" | avdmanager create avd -n test_avd \
-            -k "system-images;android-35;google_apis;x86_64" \
-            --device "pixel_5"
-          emulator -list-avds
-
-      - name: Add emulator to PATH
-        run: echo "$ANDROID_HOME/emulator" >> $GITHUB_PATH
+          echo "no" | avdmanager create avd \
+            -n $EMULATOR_NAME \
+            -k "system-images;android-${API_LEVEL};${TARGET};${ARCH}" \
+            --device "pixel"
 
       - name: Start emulator
         run: |
-          nohup xvfb-run -a emulator -avd test_avd -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect &
-          adb wait-for-device
-          until adb shell getprop sys.boot_completed | grep -q "1"; do sleep 5; done
+          nohup emulator -avd $EMULATOR_NAME \
+            -no-audio \
+            -no-window \
+            -gpu swiftshader_indirect \
+            -no-snapshot \
+            -accel on > emulator.log 2>&1 &
 
-      - name: Capture 20s video
+      - name: Wait for emulator to boot
         run: |
-          adb shell screenrecord --time-limit 20 /sdcard/demo.mp4
-          adb pull /sdcard/demo.mp4 demo.mp4
+          adb wait-for-device
+          adb shell getprop sys.boot_completed | grep -m 1 '1'
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
 
-      - name: Upload artifact
+      - name: Start screen recording
+        run: |
+          adb shell screenrecord /sdcard/${VIDEO_NAME} &
+          echo $! > screenrecord.pid
+          sleep 60   # ⏱️ Record for 60 seconds (adjust as needed)
+
+      - name: Stop screen recording
+        run: |
+          kill $(cat screenrecord.pid)
+          sleep 3
+
+      - name: Pull video from emulator
+        run: |
+          adb pull /sdcard/${VIDEO_NAME}
+
+      - name: Upload video artifact
         uses: actions/upload-artifact@v4
         with:
-          name: emulator-video
-          path: demo.mp4
+          name: android-15-emulator-video
+          path: ${{ env.VIDEO_NAME }}
+
+      - name: Shutdown emulator
+        if: always()
+        run: |
+          adb emu kill
+          
