@@ -1,7 +1,7 @@
 name: Build React Native ARM64 APK
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:   # manual trigger
 
 jobs:
   setup:
@@ -17,7 +17,7 @@ jobs:
 
       - name: Create React Native project
         run: |
-          npx react-native init MyApp
+          npx @react-native-community/cli init MyApp
           cd MyApp
           npm install
 
