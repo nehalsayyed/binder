@@ -1,13 +1,36 @@
-name: Run
+name: Buck2 Test (Manual Dispatch)
 
 on:
-  workflow_dispatch:   # manual trigger
+  workflow_dispatch:   # Only runs when triggered manually
 
 jobs:
-  setup:
+  build-and-test:
     runs-on: ubuntu-latest
+
     steps:
-      - run: |
-           sudo apt install qemu-system-x86-64 -y
-           qemu-system-x86_64 --enable-kvm --version
-  
+      - name: Checkout your repo
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git curl pkg-config libssl-dev
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # Clone Buck2 repo
+      - name: Clone Buck2
+        run: git clone https://github.com/facebook/buck2.git
+
+      # Build Buck2
+      - name: Build Buck2
+        run: |
+          cd buck2
+          cargo build --release
+
+      # Run Buck2 tests
+      - name: Run Buck2 tests
+        run: |
+          cd buck2
+          cargo test --release --all
