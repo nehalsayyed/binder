@@ -8,6 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-           sudo apt install cpu-checker -y
-           kvm-ok
+           sudo apt install qemu-system-x86-64 -y
+           qemu-system-x86_64 --enable-kvm --version
   
