@@ -8,5 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-           lscpu | grep -E 'vmx|svm'
+           sudo apt install cpu-checker -y
+           kvm-ok
   
