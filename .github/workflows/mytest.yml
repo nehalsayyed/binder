@@ -1,7 +1,7 @@
 name: Run
 
 on:
-  workflow_dispatch:   # Only runs when triggered manually
+  workflow_dispatch:
 
 jobs:
   build:
@@ -11,7 +11,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt update -y
-          sudo apt install -y curl python3 software-properties-common wget dpkg
+          sudo apt install -y curl python3 software-properties-common wget dpkg tar xz-utils
 
       - name: Install FEX via PPA
         run: |
@@ -19,9 +19,9 @@ jobs:
 
       - name: Fetch x86-64 RootFS
         run: |
-          FEXRootFSFetcher
-          echo "export FEX_ROOTFS=$HOME/.fex-emu/RootFS/" >> $HOME/.bashrc
-          export FEX_ROOTFS=$HOME/.fex-emu/RootFS/
+          FEXRootFSFetcher --rootfs Ubuntu:24.04
+          echo "export FEX_ROOTFS=$HOME/.fex-emu/RootFS/Ubuntu:24.04/" >> $HOME/.bashrc
+          export FEX_ROOTFS=$HOME/.fex-emu/RootFS/Ubuntu:24.04/
 
       - name: Test FEX with hello world
         run: |
