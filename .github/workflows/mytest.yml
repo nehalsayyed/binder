@@ -10,8 +10,7 @@ jobs:
     steps:
       - name: Install system dependencies
         run: |
-          brew install llvm
-          clang --version 
+          xcrun simctl list
           
 
       
