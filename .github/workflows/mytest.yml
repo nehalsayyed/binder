@@ -5,11 +5,11 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - name: Install system dependencies
         run: |
-          sudo lscpu
+          system_profiler SPHardwareDataType
 
       
