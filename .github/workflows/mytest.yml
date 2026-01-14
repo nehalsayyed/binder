@@ -10,6 +10,6 @@ jobs:
     steps:
       - name: Install system dependencies
         run: |
-          system_profiler SPHardwareDataType
+          uname -a
 
       
