@@ -5,12 +5,12 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-24.04-arm
 
     steps:
       - name: Install system dependencies
         run: |
-          xcrun simctl list
+          lscpu && uname -a
           
 
       
