@@ -10,7 +10,9 @@ jobs:
     steps:
       - name: Install system dependencies
         run: |
-          lscpu && uname -a
+          sudo apt update -y
+          sudo apt install clang -y
+          clang --version 
           
 
       
