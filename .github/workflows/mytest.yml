@@ -10,6 +10,7 @@ jobs:
     steps:
       - name: Install system dependencies
         run: |
-          uname -a
+          brew install clang
+          clang -v
 
       
