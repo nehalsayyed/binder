@@ -1,4 +1,4 @@
-name: Build-Ubuntu-RootFS
+name: Build-Ubuntu24-RootFS
 
 on:
   workflow_dispatch:   # Run manually
@@ -13,9 +13,14 @@ jobs:
           sudo apt update -y
           sudo apt install -y debootstrap squashfs-tools
 
-      - name: Bootstrap minimal Ubuntu 25.04 rootfs
+      - name: Bootstrap minimal Ubuntu 24.04 rootfs
         run: |
-          sudo debootstrap --arch=amd64 --variant=minbase oracular rootfs http://archive.ubuntu.com/ubuntu/
+          sudo debootstrap --arch=amd64 --variant=minbase noble rootfs http://archive.ubuntu.com/ubuntu/
+
+      - name: Add essentials (bash, coreutils, apt)
+        run: |
+          sudo chroot rootfs apt-get update
+          sudo chroot rootfs apt-get install -y bash coreutils apt
 
       - name: Clean rootfs to reduce size
         run: |
@@ -28,10 +33,10 @@ jobs:
 
       - name: Create squashfs image
         run: |
-          mksquashfs rootfs Ubuntu25_Minimal.sqsh -comp xz -b 1M -noappend
+          mksquashfs rootfs Ubuntu24_Minimal.sqsh -comp xz -b 1M -noappend
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Ubuntu25-Minimal-RootFS
-          path: Ubuntu25_Minimal.sqsh
+          name: Ubuntu24-Minimal-RootFS
+          path: Ubuntu24_Minimal.sqsh
