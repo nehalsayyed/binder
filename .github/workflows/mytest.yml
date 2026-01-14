@@ -11,7 +11,20 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt update -y
-          sudo apt install curl python3 -y 
+          sudo apt install -y curl python3 software-properties-common wget dpkg
+
+      - name: Install FEX via PPA
+        run: |
           curl --silent https://raw.githubusercontent.com/FEX-Emu/FEX/main/Scripts/InstallFEX.py | python3
 
-      
+      - name: Fetch x86-64 RootFS
+        run: |
+          FEXRootFSFetcher
+          echo "export FEX_ROOTFS=$HOME/.fex-emu/RootFS/" >> $HOME/.bashrc
+          export FEX_ROOTFS=$HOME/.fex-emu/RootFS/
+
+      - name: Test FEX with hello world
+        run: |
+          wget http://ftp.us.debian.org/debian/pool/main/h/hello/hello_2.10-2_amd64.deb
+          dpkg -x hello_2.10-2_amd64.deb hello-test
+          fex-execute ./hello-test/usr/bin/hello
