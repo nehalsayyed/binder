@@ -10,7 +10,8 @@ jobs:
     steps:
       - name: Install system dependencies
         run: |
-          brew install clang
-          clang -v
+          brew install llvm
+          clang --version 
+          
 
       
