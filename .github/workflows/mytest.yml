@@ -1,36 +1,15 @@
-name: Buck2 Test (Manual Dispatch)
+name: Run
 
 on:
   workflow_dispatch:   # Only runs when triggered manually
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout your repo
-        uses: actions/checkout@v4
-
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential git curl pkg-config libssl-dev
+          sudo lscpu
 
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      # Clone Buck2 repo
-      - name: Clone Buck2
-        run: git clone https://github.com/facebook/buck2.git
-
-      # Build Buck2
-      - name: Build Buck2
-        run: |
-          cd buck2
-          cargo build --release
-
-      # Run Buck2 tests
-      - name: Run Buck2 tests
-        run: |
-          cd buck2
-          cargo test --release --all
+      
