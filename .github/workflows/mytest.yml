@@ -1,30 +1,37 @@
-name: Run
+name: Build-Ubuntu-RootFS
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:   # Run manually
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04-arm
+  build-rootfs:
+    runs-on: ubuntu-latest   # x86_64 runner
 
     steps:
-      - name: Install system dependencies
+      - name: Install dependencies
         run: |
           sudo apt update -y
-          sudo apt install -y curl python3 software-properties-common wget dpkg tar xz-utils
+          sudo apt install -y debootstrap squashfs-tools
 
-      - name: Install FEX via PPA
+      - name: Bootstrap minimal Ubuntu 25.04 rootfs
         run: |
-          curl --silent https://raw.githubusercontent.com/FEX-Emu/FEX/main/Scripts/InstallFEX.py | python3
+          sudo debootstrap --arch=amd64 --variant=minbase oracular rootfs http://archive.ubuntu.com/ubuntu/
 
-      - name: Fetch x86-64 RootFS
+      - name: Clean rootfs to reduce size
         run: |
-          FEXRootFSFetcher --rootfs Ubuntu:24.04
-          echo "export FEX_ROOTFS=$HOME/.fex-emu/RootFS/Ubuntu:24.04/" >> $HOME/.bashrc
-          export FEX_ROOTFS=$HOME/.fex-emu/RootFS/Ubuntu:24.04/
+          sudo chroot rootfs apt-get clean
+          sudo rm -rf rootfs/var/lib/apt/lists/*
+          sudo rm -rf rootfs/usr/share/doc/*
+          sudo rm -rf rootfs/usr/share/man/*
+          sudo rm -rf rootfs/usr/share/info/*
+          sudo rm -rf rootfs/tmp/*
 
-      - name: Test FEX with hello world
+      - name: Create squashfs image
         run: |
-          wget http://ftp.us.debian.org/debian/pool/main/h/hello/hello_2.10-2_amd64.deb
-          dpkg -x hello_2.10-2_amd64.deb hello-test
-          fex-execute ./hello-test/usr/bin/hello
+          mksquashfs rootfs Ubuntu25_Minimal.sqsh -comp xz -b 1M -noappend
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ubuntu25-Minimal-RootFS
+          path: Ubuntu25_Minimal.sqsh
