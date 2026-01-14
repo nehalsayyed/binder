@@ -11,8 +11,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt update -y
-          sudo apt install clang -y
-          clang --version 
-          
+          sudo apt install curl python3 -y 
+          curl --silent https://raw.githubusercontent.com/FEX-Emu/FEX/main/Scripts/InstallFEX.py | python3
 
       
