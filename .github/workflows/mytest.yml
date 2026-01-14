@@ -17,10 +17,10 @@ jobs:
         run: |
           sudo debootstrap --arch=amd64 --variant=minbase noble rootfs http://archive.ubuntu.com/ubuntu/
 
-      - name: Add essentials (bash, coreutils, apt)
+      - name: Add essentials (glibc, bash, coreutils, apt)
         run: |
           sudo chroot rootfs apt-get update
-          sudo chroot rootfs apt-get install -y bash coreutils apt
+          sudo chroot rootfs apt-get install -y libc6 bash coreutils apt
 
       - name: Clean rootfs to reduce size
         run: |
