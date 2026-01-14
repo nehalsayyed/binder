@@ -1,11 +1,11 @@
 name: Build-Ubuntu24-RootFS
 
 on:
-  workflow_dispatch:   # Run manually
+  workflow_dispatch:
 
 jobs:
   build-rootfs:
-    runs-on: ubuntu-latest   # x86_64 runner
+    runs-on: ubuntu-latest
 
     steps:
       - name: Install dependencies
@@ -13,15 +13,14 @@ jobs:
           sudo apt update -y
           sudo apt install -y debootstrap squashfs-tools
 
-      - name: Bootstrap minimal Ubuntu 24.04 rootfs
+      - name: Bootstrap Ubuntu 24.04 rootfs (with glibc)
         run: |
-          sudo debootstrap --arch=amd64 --variant=minbase noble rootfs http://archive.ubuntu.com/ubuntu/
+          sudo debootstrap --arch=amd64 --variant=buildd noble rootfs http://archive.ubuntu.com/ubuntu/
 
-      - name: Add essentials (glibc, bash, coreutils, apt, ncurses)
+      - name: Add essentials (bash, coreutils, apt, ncurses)
         run: |
-         sudo chroot rootfs apt-get update
-         sudo chroot rootfs apt-get install -y libc6 bash coreutils apt libtinfo6 libncurses6
-    
+          sudo chroot rootfs /bin/sh -c "apt-get update && apt-get install -y bash coreutils apt libtinfo6 libncurses6"
+
       - name: Clean rootfs to reduce size
         run: |
           sudo chroot rootfs apt-get clean
@@ -33,10 +32,10 @@ jobs:
 
       - name: Create squashfs image
         run: |
-          mksquashfs rootfs Ubuntu24_Minimal.sqsh -comp xz -b 1M -noappend
+          mksquashfs rootfs Ubuntu24_Working.sqsh -comp xz -b 1M -noappend
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Ubuntu24-Minimal-RootFS
-          path: Ubuntu24_Minimal.sqsh
+          name: Ubuntu24-Working-RootFS
+          path: Ubuntu24_Working.sqsh
