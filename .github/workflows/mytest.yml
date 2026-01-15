@@ -1,41 +1,89 @@
-name: Build-Ubuntu24-RootFS
+name: Android Emulator Info
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:   # manual trigger only
 
 jobs:
-  build-rootfs:
+  emulator-info:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install dependencies
-        run: |
-          sudo apt update -y
-          sudo apt install -y debootstrap squashfs-tools
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Bootstrap Ubuntu 24.04 rootfs (with glibc)
-        run: |
-          sudo debootstrap --arch=amd64 --variant=buildd noble rootfs http://archive.ubuntu.com/ubuntu/
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
 
-      - name: Add essentials (bash, coreutils, apt, ncurses)
-        run: |
-          sudo chroot rootfs /bin/sh -c "apt-get update && apt-get install -y bash coreutils apt libtinfo6 libncurses6"
+    - name: Install Android SDK tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wget unzip
+        wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
+        mkdir -p $HOME/android-sdk/cmdline-tools
+        unzip cmdline-tools.zip -d $HOME/android-sdk/cmdline-tools
+        echo "export ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+        echo "export PATH=$HOME/android-sdk/cmdline-tools/bin:$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
 
-      - name: Clean rootfs to reduce size
-        run: |
-          sudo chroot rootfs apt-get clean
-          sudo rm -rf rootfs/var/lib/apt/lists/*
-          sudo rm -rf rootfs/usr/share/doc/*
-          sudo rm -rf rootfs/usr/share/man/*
-          sudo rm -rf rootfs/usr/share/info/*
-          sudo rm -rf rootfs/tmp/*
+    - name: Install system image and create AVD
+      run: |
+        sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" \
+          "platforms;android-31" \
+          "system-images;android-31;google_apis;x86_64"
+        echo "no" | avdmanager create avd -n ci_avd \
+          --abi google_apis/x86_64 \
+          -k "system-images;android-31;google_apis;x86_64"
 
-      - name: Create squashfs image
-        run: |
-          mksquashfs rootfs Ubuntu24_Working.sqsh -comp xz -b 1M -noappend
+    - name: Start emulator (headless)
+      run: |
+        nohup emulator -avd ci_avd -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect &
+        adb wait-for-device
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Ubuntu24-Working-RootFS
-          path: Ubuntu24_Working.sqsh
+    - name: Collect system information
+      run: |
+        echo "=== Device List ==="
+        adb devices
+
+        echo "=== Android Version ==="
+        adb shell getprop ro.build.version.release
+
+        echo "=== SDK Version ==="
+        adb shell getprop ro.build.version.sdk
+
+        echo "=== Device Model ==="
+        adb shell getprop ro.product.model
+
+        echo "=== Manufacturer ==="
+        adb shell getprop ro.product.manufacturer
+
+        echo "=== CPU ABI ==="
+        adb shell getprop ro.product.cpu.abi
+
+        echo "=== Hardware ==="
+        adb shell getprop ro.hardware
+
+        echo "=== Kernel Version ==="
+        adb shell uname -a
+
+        echo "=== Full getprop dump ==="
+        adb shell getprop
+
+    - name: Root detection
+      run: |
+        echo "=== Root Detection ==="
+        echo "-> Attempting adb root"
+        adb root || echo "adb root not allowed"
+
+        echo "-> Checking user id"
+        adb shell id
+
+        echo "-> Checking for su binary"
+        adb shell which su || echo "su binary not found"
+
+        echo "-> Checking ro.debuggable property"
+        adb shell getprop ro.debuggable
+
+        echo "-> Checking ro.secure property"
+        adb shell getprop ro.secure
