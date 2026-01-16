@@ -1,36 +1,17 @@
-name: Build Box64 (ARM)
+name: FreeBSD CI
 
 on:
-  workflow_dispatch:   # Only runs when manually triggered
+  workflow_dispatch: 
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm   # ARM64 Ubuntu runner
-
+    runs-on: ubuntu-latest
     steps:
-      # Checkout the repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # Install dependencies
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake build-essential git
-
-      # Clone and build Box64
-      - name: Clone and build Box64
-        run: |
-          git clone https://github.com/ptitSeb/box64
-          cd box64
-          mkdir build
-          cd build
-          cmake ..
-          make -j$(nproc)
-
-      # Upload build artifact
-      - name: Upload Box64 binary
-        uses: actions/upload-artifact@v4
+      - uses: actions/checkout@v3
+      - name: Run in FreeBSD VM
+        uses: vmactions/freebsd-vm@v0
         with:
-          name: box64-bin-arm64
-          path: box64/build/
+          release: "14.0"
+          run: |
+            uname -a
+            
