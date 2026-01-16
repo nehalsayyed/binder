@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04-arm64   # ARM64 Ubuntu runner
+    runs-on: ubuntu-24.04-arm   # ARM64 Ubuntu runner
 
     steps:
       # Checkout the repository
