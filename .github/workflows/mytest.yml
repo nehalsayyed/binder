@@ -8,41 +8,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Install Playwright
         run: |
-          npm init -y
-          npm install -D @playwright/test
-          npx playwright install --with-deps
-
-      - name: Create inline test with video
-        run: |
-          echo "import { test } from '@playwright/test';
-          test('record video demo', async ({ page }) => {
-            await page.goto('https://example.com');
-            await page.screenshot({ path: 'screenshot.png' });
-          });" > test.spec.ts
-
-          echo "import { defineConfig } from '@playwright/test';
-          export default defineConfig({
-            use: { video: 'on', screenshot: 'on' },
-            reporter: [['list'], ['html', { outputFolder: 'test-results' }]],
-          });" > playwright.config.ts
-
-      - name: Run Playwright test
-        run: npx playwright test
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: browser-artifacts
-          path: |
-            screenshot.png
-            test-results/**/video.webm
+          choco install siv
+          siv
