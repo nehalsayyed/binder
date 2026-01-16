@@ -11,7 +11,7 @@ jobs:
       - name: Run in FreeBSD VM
         uses: vmactions/freebsd-vm@v0
         with:
-          release: "14.0"
+          release: "13.2"
           run: |
             uname -a
             
