@@ -1,91 +1,48 @@
-name: Android Emulator Info
+name: Browser Screenshot Video
 
 on:
-  workflow_dispatch:   # manual trigger only
+  workflow_dispatch:
 
 jobs:
-  emulator-info:
-    runs-on: ubuntu-latest
+  record-browser:
+    runs-on: windows-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-    - name: Set up JDK
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-    - name: Install Android SDK tools
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y wget unzip
-        wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-        mkdir -p $HOME/android-sdk/cmdline-tools
-        unzip cmdline-tools.zip -d $HOME/android-sdk/cmdline-tools
-        # Move into "latest" subdir so sdkmanager is in the right place
-        mv $HOME/android-sdk/cmdline-tools/cmdline-tools $HOME/android-sdk/cmdline-tools/latest
-        echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm install -D @playwright/test
+          npx playwright install --with-deps
 
-    - name: Install system image and create AVD
-      run: |
-        sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" \
-          "platforms;android-31" \
-          "system-images;android-31;google_apis;x86_64"
-        echo "no" | avdmanager create avd -n ci_avd \
-          --abi google_apis/x86_64 \
-          -k "system-images;android-31;google_apis;x86_64"
+      - name: Create inline test with video
+        run: |
+          echo "import { test } from '@playwright/test';
+          test('record video demo', async ({ page }) => {
+            await page.goto('https://example.com');
+            await page.screenshot({ path: 'screenshot.png' });
+          });" > test.spec.ts
 
-    - name: Start emulator (headless)
-      run: |
-        nohup emulator -avd ci_avd -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect &
-        adb wait-for-device
+          echo "import { defineConfig } from '@playwright/test';
+          export default defineConfig({
+            use: { video: 'on', screenshot: 'on' },
+            reporter: [['list'], ['html', { outputFolder: 'test-results' }]],
+          });" > playwright.config.ts
 
-    - name: Collect system information
-      run: |
-        echo "=== Device List ==="
-        adb devices
+      - name: Run Playwright test
+        run: npx playwright test
 
-        echo "=== Android Version ==="
-        adb shell getprop ro.build.version.release
-
-        echo "=== SDK Version ==="
-        adb shell getprop ro.build.version.sdk
-
-        echo "=== Device Model ==="
-        adb shell getprop ro.product.model
-
-        echo "=== Manufacturer ==="
-        adb shell getprop ro.product.manufacturer
-
-        echo "=== CPU ABI ==="
-        adb shell getprop ro.product.cpu.abi
-
-        echo "=== Hardware ==="
-        adb shell getprop ro.hardware
-
-        echo "=== Kernel Version ==="
-        adb shell uname -a
-
-        echo "=== Full getprop dump ==="
-        adb shell getprop
-
-    - name: Root detection
-      run: |
-        echo "=== Root Detection ==="
-        echo "-> Attempting adb root"
-        adb root || echo "adb root not allowed"
-
-        echo "-> Checking user id"
-        adb shell id
-
-        echo "-> Checking for su binary"
-        adb shell which su || echo "su binary not found"
-
-        echo "-> Checking ro.debuggable property"
-        adb shell getprop ro.debuggable
-
-        echo "-> Checking ro.secure property"
-        adb shell getprop ro.secure
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-artifacts
+          path: |
+            screenshot.png
+            test-results/**/video.webm
