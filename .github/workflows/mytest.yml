@@ -1,14 +1,36 @@
-name: Browser Screenshot Video
+name: Build Box64 (ARM)
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:   # Only runs when manually triggered
 
 jobs:
-  record-browser:
-    runs-on: windows-latest
+  build:
+    runs-on: ubuntu-22.04-arm64   # ARM64 Ubuntu runner
 
     steps:
-      - name: Install Playwright
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install dependencies
+      - name: Install build dependencies
         run: |
-          choco install siv
-          siv
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential git
+
+      # Clone and build Box64
+      - name: Clone and build Box64
+        run: |
+          git clone https://github.com/ptitSeb/box64
+          cd box64
+          mkdir build
+          cd build
+          cmake ..
+          make -j$(nproc)
+
+      # Upload build artifact
+      - name: Upload Box64 binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: box64-bin-arm64
+          path: box64/build/box64
