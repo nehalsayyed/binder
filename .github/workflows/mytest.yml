@@ -1,17 +1,16 @@
 name: FreeBSD CI
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   freebsd:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: vmactions/freebsd-vm@v0
+      - name: Run in FreeBSD VM
+        uses: vmactions/freebsd-vm@v0
         with:
-          release: "13.2"
           run: |
             uname -a
             pkg install -y tree
-            
