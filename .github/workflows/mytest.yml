@@ -27,7 +27,7 @@ jobs:
 
       - name: Generate New Project
         run: |
-          npx react-native init MyNewProject --version latest
+          npx @react-native-community/cli init MyNewProject --version latest
           cd MyNewProject
           
       - name: Configure Android SDK
