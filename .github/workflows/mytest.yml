@@ -13,4 +13,4 @@ jobs:
       - name: Install dependencies
         run: |
           docker info
-          docker -i rust:latest
+          docker run -i rust:latest
