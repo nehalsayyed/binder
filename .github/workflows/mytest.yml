@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
 
@@ -13,3 +13,4 @@ jobs:
       - name: Install dependencies
         run: |
           docker info
+          docker -i rust:latest
