@@ -5,10 +5,41 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Run
+      - name: Install tools (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
-          sudo apt update -y && sudo apt install neofetch -y
-          lscpu && neofetch
+          sudo apt-get update -y || true
+          sudo apt-get install -y neofetch || true
+          brew install neofetch || true
+          lscpu || sysctl -a | grep machdep.cpu || true
+          neofetch || true
+
+      - name: Install tools (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install neofetch -y
+          systeminfo
+          neofetch
+
+      - name: Save output
+        run: |
+          echo "===== ${{ matrix.os }} =====" >> summary.txt
+          if [ "${{ runner.os }}" = "Linux" ] || [ "${{ runner.os }}" = "macOS" ]; then
+            lscpu >> summary.txt 2>&1 || sysctl -a | grep machdep.cpu >> summary.txt 2>&1
+            neofetch >> summary.txt 2>&1 || true
+          else
+            systeminfo >> summary.txt 2>&1
+            neofetch >> summary.txt 2>&1 || true
+          fi
+
+      - name: Upload combined output
+        uses: actions/upload-artifact@v4
+        with:
+          name: runner-info
+          path: summary.txt
