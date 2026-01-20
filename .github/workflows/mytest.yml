@@ -18,6 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update -y && sudo apt install git -y
-          git clone https://github.com/bhupal4all/learn-picocli.git
-          cd learn-picocli
-          mvn package 
+          git clone https://github.com/Kotlin/kotlinx-cli.git
+          cd kotlinx-cli
+          chmod 777 gradlew
+          ./gradlew
