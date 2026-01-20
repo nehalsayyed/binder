@@ -17,5 +17,5 @@ jobs:
           distribution: 'temurin'
       - name: Install dependencies
         run: |
-          java --help
+          java --version 
           gradle
