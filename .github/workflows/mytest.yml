@@ -11,35 +11,64 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Install tools (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Install tools (Ubuntu)
+        if: startsWith(matrix.os, 'ubuntu')
         run: |
-          sudo apt-get update -y || true
-          sudo apt-get install -y neofetch || true
+          sudo apt-get update -y
+          sudo apt-get install -y neofetch
+          lscpu
+          neofetch
+
+      - name: Install tools (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
           brew install neofetch || true
-          lscpu || sysctl -a | grep machdep.cpu || true
-          neofetch || true
+          sysctl -a | grep machdep.cpu
+          neofetch
 
       - name: Install tools (Windows)
-        if: runner.os == 'Windows'
+        if: matrix.os == 'windows-latest'
         run: |
           choco install neofetch -y
           systeminfo
           neofetch
 
       - name: Save output
+        shell: bash
         run: |
-          echo "===== ${{ matrix.os }} =====" >> summary.txt
-          if [ "${{ runner.os }}" = "Linux" ] || [ "${{ runner.os }}" = "macOS" ]; then
-            lscpu >> summary.txt 2>&1 || sysctl -a | grep machdep.cpu >> summary.txt 2>&1
-            neofetch >> summary.txt 2>&1 || true
+          echo "===== ${{ matrix.os }} =====" >> summary-${{ matrix.os }}.txt
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            lscpu >> summary-${{ matrix.os }}.txt 2>&1
+            neofetch >> summary-${{ matrix.os }}.txt 2>&1
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            sysctl -a | grep machdep.cpu >> summary-${{ matrix.os }}.txt 2>&1
+            neofetch >> summary-${{ matrix.os }}.txt 2>&1
           else
-            systeminfo >> summary.txt 2>&1
-            neofetch >> summary.txt 2>&1 || true
+            systeminfo >> summary-${{ matrix.os }}.txt 2>&1
+            neofetch >> summary-${{ matrix.os }}.txt 2>&1
           fi
 
-      - name: Upload combined output
+      - name: Upload per-runner output
         uses: actions/upload-artifact@v4
         with:
-          name: runner-info
-          path: summary.txt
+          name: runner-info-${{ matrix.os }}
+          path: summary-${{ matrix.os }}.txt
+
+  aggregate:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Merge outputs
+        run: |
+          cat artifacts/*/summary-*.txt > all-runners-summary.txt
+
+      - name: Upload merged output
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-runners-info
+          path: all-runners-summary.txt
