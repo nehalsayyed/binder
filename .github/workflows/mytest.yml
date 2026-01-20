@@ -1,4 +1,4 @@
-name: Build ScreenRecorder (manual git clone)
+name: Build Warpinator (manual git clone)
 
 on:
   workflow_dispatch:   # run only when manually triggered
@@ -9,8 +9,8 @@ jobs:
 
     steps:
     # Clone the external repo using git
-    - name: Clone ScreenRecorder repo
-      run: git clone https://github.com/akon47/ScreenRecorder.git
+    - name: Clone Warpinator repo
+      run: git clone https://github.com/slowscript/warpinator-windows.git
 
     # Setup MSBuild (Visual Studio 2022)
     - name: Setup MSBuild
@@ -22,20 +22,16 @@ jobs:
 
     # Restore NuGet packages
     - name: Restore NuGet packages
-      run: nuget restore ScreenRecorder/ScreenRecorder.sln
+      run: nuget restore warpinator-windows/Warpinator.sln
 
-    # Install FFmpeg
-    - name: Install FFmpeg
-      run: choco install ffmpeg --yes
-
-    # Build the solution (Release|x64 is valid per .sln file)
+    # Build the solution (Release|Any CPU is valid per .sln file)
     - name: Build solution
-      run: msbuild ScreenRecorder/ScreenRecorder.sln /p:Configuration=Release /p:Platform="x64"
+      run: msbuild warpinator-windows/Warpinator.sln /p:Configuration=Release /p:Platform="Any CPU"
 
     # Upload build artifacts
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ScreenRecorder-Release-x64
+        name: Warpinator-Release
         path: |
-          ScreenRecorder/**/bin/Release/
+          warpinator-windows/**/bin/Release/
