@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: linux-ubuntu-arm
+    runs-on: ubuntu-24.04-arm
 
     steps:
       - name: Run
