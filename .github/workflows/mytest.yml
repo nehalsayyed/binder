@@ -17,5 +17,7 @@ jobs:
           distribution: 'temurin'
       - name: Install dependencies
         run: |
-          java --version 
-          gradle
+          sudo apt update -y && sudo apt install git -y
+          git clone https://github.com/bhupal4all/learn-picocli.git
+          cd learn-picocli
+          mvn package 
