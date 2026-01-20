@@ -12,6 +12,9 @@ jobs:
       # Install dependencies (GCC 13, CMake, Make, etc.)
       - name: Setup java
         uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
       - name: Install dependencies
         run: |
           java --help
