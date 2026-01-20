@@ -10,13 +10,9 @@ jobs:
     steps:
       - name: Install Git
         run: |
-          choco install git -y
+          choco install zig -y
 
-      - name: Clone repo
-        run: |
-          git clone https://github.com/henrypp/memreduct.git
 
       - name: Build project
         run: |
-          cd memreduct
-          cmd build.bat
+          zig 
