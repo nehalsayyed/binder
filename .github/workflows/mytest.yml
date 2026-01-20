@@ -5,16 +5,18 @@ on:
 
 jobs:
   build:
-        
-    runs-on: macos-latest
+    runs-on: windows-latest
 
     steps:
-      - name: Install tools 
+      - name: Install Git
         run: |
-           brew install fastfetch
-           fastfetch
-           
-          
+          choco install git -y
 
-      
-    
+      - name: Clone repo
+        run: |
+          git clone https://github.com/henrypp/memreduct.git
+
+      - name: Build project
+        run: |
+          cd memreduct
+          build.bat
