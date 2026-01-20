@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update -y && sudo apt install git -y
-          git clone https://github.com/Kotlin/kotlinx-cli.git
-          cd kotlinx-cli
+          git clone https://github.com/Col-E/Recaf.git
+          cd Recaf
           chmod 777 gradlew
           ./gradlew
