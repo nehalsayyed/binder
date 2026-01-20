@@ -5,38 +5,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-arm
 
     steps:
-      - name: Install Git and clone project
+      - name: Run
         run: |
-          sudo apt update -y && sudo apt install git -y
-          git clone https://github.com/shirourakawa/android-hello-world.git
-
-      - name: Set up JDK 17 (with Gradle cache)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-          cache: 'gradle'
-          working-directory: android-hello-world
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          # Use the latest stable SDK + build tools
-          packages: |
-            platforms;android-34
-            build-tools;34.0.0
-
-      - name: Build debug APK
-        run: |
-          cd android-hello-world
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-apk
-          path: android-hello-world/app/build/outputs/apk/debug/*.apk
+          sudo apt update -y && sudo apt install fastfetch -y
+          lscpu && fastfetch
