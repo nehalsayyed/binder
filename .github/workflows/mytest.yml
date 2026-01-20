@@ -28,14 +28,14 @@ jobs:
     - name: Install FFmpeg
       run: choco install ffmpeg --yes
 
-    # Build the solution
+    # Build the solution (Release|x64 is valid per .sln file)
     - name: Build solution
-      run: msbuild ScreenRecorder/ScreenRecorder.sln /p:Configuration=Release /p:Platform="Any CPU"
+      run: msbuild ScreenRecorder/ScreenRecorder.sln /p:Configuration=Release /p:Platform="x64"
 
     # Upload build artifacts
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ScreenRecorder-build
+        name: ScreenRecorder-Release-x64
         path: |
           ScreenRecorder/**/bin/Release/
