@@ -1,4 +1,4 @@
-name: Build ScreenRecorder (manual)
+name: Build ScreenRecorder (manual git clone)
 
 on:
   workflow_dispatch:   # run only when manually triggered
@@ -8,13 +8,9 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    # Clone the external repo directly
-    - name: Checkout ScreenRecorder repo
-      uses: actions/checkout@v4
-      with:
-        repository: akon47/ScreenRecorder
-        ref: main   # or specify a branch/tag
-        path: ScreenRecorder
+    # Clone the external repo using git
+    - name: Clone ScreenRecorder repo
+      run: git clone https://github.com/akon47/ScreenRecorder.git
 
     # Setup MSBuild (Visual Studio 2022)
     - name: Setup MSBuild
