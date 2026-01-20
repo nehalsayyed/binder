@@ -10,5 +10,5 @@ jobs:
     steps:
       - name: Run
         run: |
-          sudo apt update -y && sudo apt install fastfetch -y
-          lscpu && fastfetch
+          sudo apt update -y && sudo apt install neofetch -y
+          lscpu && neofetch
