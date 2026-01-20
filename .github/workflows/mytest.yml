@@ -8,12 +8,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up JDK 17
+      - name: Install Git and clone project
+        run: |
+          sudo apt update -y && sudo apt install git -y
+          git clone https://github.com/shirourakawa/android-hello-world.git
+
+      - name: Set up JDK 17 (with Gradle cache)
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
           cache: 'gradle'
+          working-directory: android-hello-world
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -25,8 +31,6 @@ jobs:
 
       - name: Build debug APK
         run: |
-          sudo apt update -y && sudo apt install git -y
-          git clone https://github.com/shirourakawa/android-hello-world.git
           cd android-hello-world
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
@@ -35,4 +39,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: android-hello-world/app/build/outputs/apk/debug/*.apk
