@@ -1,4 +1,4 @@
-name: Build Solidity
+name: Building
 
 on:
   workflow_dispatch:   # manual trigger
@@ -8,17 +8,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
-      # Install dependencies (GCC 13, CMake, Make, etc.)
       - name: Setup java
         uses: actions/setup-java@v4
         with:
           java-version: '22'
           distribution: 'temurin'
-      - name: Install dependencies
+
+      - name: Install dependencies and build
         run: |
           sudo apt update -y && sudo apt install git -y
           git clone https://github.com/Col-E/Recaf.git
           cd Recaf
-          chmod 777 gradlew
+          chmod +x gradlew
           ./gradlew build
+
+      - name: Uploading build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: recaf-build
+          path: Recaf/build/libs/*.jar
