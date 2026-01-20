@@ -19,4 +19,4 @@ jobs:
       - name: Build project
         run: |
           cd memreduct
-          cmd /c build.bat
+          cmd build.bat
