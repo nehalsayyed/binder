@@ -1,37 +1,37 @@
-name: Build Warpinator (manual git clone)
+name: Benchmark GitHub Runner
 
 on:
-  workflow_dispatch:   # run only when manually triggered
+  workflow_dispatch:   # allows manual trigger from GitHub UI
 
 jobs:
-  build:
-    runs-on: windows-latest
-
+  benchmark:
+    runs-on: ubuntu-latest
     steps:
-    # Clone the external repo using git
-    - name: Clone Warpinator repo
-      run: git clone https://github.com/slowscript/warpinator-windows.git
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-    # Setup MSBuild (Visual Studio 2022)
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v1.3
+      - name: Install benchmarking tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sysbench iperf3 build-essential
 
-    # Setup NuGet
-    - name: Setup NuGet
-      uses: NuGet/setup-nuget@v1.2.0
+      # CPU benchmark
+      - name: CPU benchmark
+        run: sysbench cpu --cpu-max-prime=20000 --threads=$(nproc) run
 
-    # Restore NuGet packages
-    - name: Restore NuGet packages
-      run: nuget restore warpinator-windows/Warpinator.sln
+      # Memory benchmark
+      - name: Memory benchmark
+        run: sysbench memory --threads=$(nproc) run
 
-    # Build the solution (Release|Any CPU is valid per .sln file)
-    - name: Build solution
-      run: msbuild warpinator-windows/Warpinator.sln /p:Configuration=Release /p:Platform="Any CPU"
+      # Disk benchmark
+      - name: Disk benchmark
+        run: |
+          sysbench fileio --file-test-mode=seqrd --file-total-size=1G prepare
+          sysbench fileio --file-test-mode=seqrd run
+          sysbench fileio cleanup
 
-    # Upload build artifacts
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: Warpinator-Release
-        path: |
-          warpinator-windows/**/bin/Release/
+      # Network benchmark
+      - name: Network benchmark
+        run: iperf3 -c iperf.he.net -t 10
+
+      
