@@ -12,6 +12,6 @@ jobs:
 
       - name: 
         run: |
-          sudo apt-get update -y && sudo apt install nmap -y
-          nmap tugu.com
+          sudo apt-get update -y && sudo apt install neofetch -y
+          neofetch 
           
