@@ -1,37 +1,17 @@
 name: Benchmark GitHub Runner
 
 on:
-  workflow_dispatch:   # allows manual trigger from GitHub UI
+  workflow_dispatch:  
 
 jobs:
   benchmark:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install benchmarking tools
+      - name: 
         run: |
-          sudo apt-get update
-          sudo apt-get install -y sysbench iperf3 build-essential
-
-      # CPU benchmark
-      - name: CPU benchmark
-        run: sysbench cpu --cpu-max-prime=20000 --threads=$(nproc) run
-
-      # Memory benchmark
-      - name: Memory benchmark
-        run: sysbench memory --threads=$(nproc) run
-
-      # Disk benchmark
-      - name: Disk benchmark
-        run: |
-          sysbench fileio --file-test-mode=seqrd --file-total-size=1G prepare
-          sysbench fileio --file-test-mode=seqrd run
-          sysbench fileio cleanup
-
-      # Network benchmark
-      - name: Network benchmark
-        run: iperf3 -c iperf.he.net -t 10
-
-      
+          sudo apt-get update -y
+          systemctl 
+          
