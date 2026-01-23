@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-latest  # ARM64 runner
     container:
-      image: gmeligio/flutter-android:latest
+      image: ghcr.io/gmeligio/flutter-android:3.38.7
 
     steps:
       - name: Install Git
