@@ -6,14 +6,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest  # ARM64 runner
-    container:
-      image: instrumentisto/flutter:latest
 
     steps:
       - name: Install Git
         run: |
           sudo apt update -y && sudo apt install git -y
-          git config --global --add safe.directory /usr/local/flutter
-          flutter doctor -v
+          git clone https://github.com/nickjj/docker-rails-example.git
+          cd docker-rails-example
+          docker build -t nehal .
+          docker run -p 8080:8080 nehal 
 
       
