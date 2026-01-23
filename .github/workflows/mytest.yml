@@ -1,19 +1,18 @@
-name: Build Renode on Ubuntu 24.04 ARM
+name: Build
 
 on:
   workflow_dispatch:   # manual trigger
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # ARM64 runner
+    runs-on: ubuntu-latest  
 
     steps:
       - name: Install Git
         run: |
           sudo apt update -y && sudo apt install git -y
-          git clone https://github.com/nickjj/docker-rails-example.git
-          cd docker-rails-example
-          docker build -t nehal .
-          docker run -p 8080:8080 nehal 
+          git clone https://github.com/JBouron/x86_64-kernel.git
+          cd x86_64-kernel
+          make
 
       
