@@ -12,6 +12,6 @@ jobs:
     steps:
       - name: Setup Environment
         run: |
-          sudo apt update -y
-          sudo apt install fastfetch -y
+          apt update -y
+          apt install fastfetch -y
           fastfetch
