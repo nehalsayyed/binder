@@ -11,5 +11,5 @@ jobs:
       - name: Setup Environment
         run: |
           sudo apt update -y
-          sudo apt install fastfetch -y
-          fastfetch
+          sudo apt install neofetch -y
+          neofetch
