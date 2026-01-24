@@ -5,11 +5,13 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  
+    runs-on: ubuntu-latest 
+    container:
+      image: ubuntu:26.04
 
     steps:
       - name: Setup Environment
         run: |
           sudo apt update -y
-          sudo apt install neofetch -y
-          neofetch
+          sudo apt install fastfetch -y
+          fastfetch
