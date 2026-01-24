@@ -5,10 +5,11 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest  
+    runs-on: ubuntu-latest  
 
     steps:
       - name: Setup Environment
         run: |
-          choco install fastfetch
+          sudo apt update
+          sudo apt install fastfetch
           fastfetch
