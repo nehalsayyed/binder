@@ -12,6 +12,7 @@ jobs:
     steps:
       - name: Install Git
         run: |
+          git config --global --add safe.directory /usr/local/flutter
           flutter doctor -v
 
       
