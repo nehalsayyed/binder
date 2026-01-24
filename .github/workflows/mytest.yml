@@ -10,5 +10,10 @@ jobs:
     steps:
       - name: Setup Environment
         run: |
-          brew install fastfetch
-          fastfetch
+          brew install git cmake make g++
+          git clone https://github.com/ggml-org/llama.cpp.git
+          cd llama.cpp 
+          mkdir build 
+          cd build 
+          cmake ..
+          make -j $(nproc)
