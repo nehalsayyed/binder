@@ -6,10 +6,9 @@ on:
 jobs:
   build:
     runs-on: macos-latest  
-    container:
-      image: rust:latest
 
     steps:
       - name: Setup Environment
         run: |
-          cargo -V
+          brew install fastfetch
+          fastfetch
