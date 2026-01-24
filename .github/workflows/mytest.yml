@@ -6,13 +6,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest  
+    container:
+      image: rustlang/rust:nightly 
 
     steps:
       - name: Install Git
         run: |
-          sudo apt update -y && sudo apt install git -y
-          git clone https://github.com/JBouron/x86_64-kernel.git
-          cd x86_64-kernel
-          make
+          cargo -V
 
       
