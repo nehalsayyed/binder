@@ -10,9 +10,25 @@ jobs:
       image: instrumentisto/flutter:latest
 
     steps:
-      - name: Install Git
+      - name: Install Git & Setup Environment
         run: |
           git config --global --add safe.directory /usr/local/flutter
           flutter doctor -v
 
-      
+      - name: Create New Flutter Project
+        run: flutter create nehalapp
+
+      - name: Build APK (ARM64 only)
+        # We change directory into 'nehalapp' to run the build
+        run: |
+          cd nehalapp
+          flutter build apk --release --target-platform android-arm64
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nehalapp-arm64
+          # Path points to the output folder inside the new project directory
+          path: nehalapp/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 5
+          
