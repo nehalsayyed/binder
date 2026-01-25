@@ -1,53 +1,50 @@
-name: Build
+name: Build SFML Android
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest 
-    container:
-      image: matheusmayron8/android-sdk-34:latest
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Install Build Tools
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install System Dependencies
         run: |
-          apt update -y
-          apt install git ninja-build wget -y
-          # Install CMake 3.28.1 (SFML requires 3.28+)
-          wget https://github.com/Kitware/CMake/releases/download/v3.28.1/cmake-3.28.1-linux-x86_64.sh
-          chmod +x cmake-3.28.1-linux-x86_64.sh
-          ./cmake-3.28.1-linux-x86_64.sh --skip-license --prefix=/usr/local
-          
+          sudo apt update
+          sudo apt install -y git cmake ninja-build
+
       - name: Clone SFML
         run: git clone https://github.com/SFML/SFML.git
 
-      - name: Build SFML and Example
+      - name: Build SFML for Android
         run: |
-          # 1. Dynamically find the NDK toolchain file
-          NDK_TOOLCHAIN=$(find /android-home -name "android.toolchain.cmake" | head -n 1)
-          echo "Found NDK Toolchain at: $NDK_TOOLCHAIN"
-          
-          # 2. Build SFML for Android
+          # On the standard runner, ANDROID_NDK_LATEST_HOME is pre-defined
           cd SFML
-          /usr/local/bin/cmake -S . -B build_android \
+          cmake -S . -B build_android \
             -G Ninja \
-            -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \
-            -DCMAKE_TOOLCHAIN_FILE="$NDK_TOOLCHAIN" \
+            -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_LATEST_HOME/build/cmake/android.toolchain.cmake \
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-21 \
             -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/sfml_install
-          /usr/local/bin/cmake --build build_android --target install
+          cmake --build build_android --target install
 
-          # 3. Build the Example APK
-          cd examples/android
+      - name: Build Android Example
+        run: |
+          cd SFML/examples/android
           chmod +x gradlew
-          # We pass the SFML_DIR so the example's CMake knows where the libs are
-          ./gradlew assembleDebug \
-            -Pandroid.args="-DSFML_DIR=$GITHUB_WORKSPACE/sfml_install/lib/cmake/SFML" \
-            -Dorg.gradle.project.android.externalNativeBuild.cmake.path=/usr/local/bin/cmake
+          # Point the example to the local build we just made
+          ./gradlew assembleDebug -Pandroid.args="-DSFML_DIR=$GITHUB_WORKSPACE/sfml_install/lib/cmake/SFML"
 
-      - name: Upload Artifacts
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: sfml-android-apk
