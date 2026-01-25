@@ -25,10 +25,10 @@ jobs:
       - name: Clone SFML
         run: git clone https://github.com/SFML/SFML.git
 
-      - name: Build SFML for Android
+      - name: Build SFML Core for Android
         run: |
-          # On the standard runner, ANDROID_NDK_LATEST_HOME is pre-defined
           cd SFML
+          # Build the actual library files for arm64
           cmake -S . -B build_android \
             -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_LATEST_HOME/build/cmake/android.toolchain.cmake \
@@ -37,16 +37,16 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/sfml_install
           cmake --build build_android --target install
 
-      - name: Build Android Example
+      - name: Build Android Example APK
         run: |
           cd SFML/examples/android
           chmod +x gradlew
-          # Point the example to the local build we just made
-          ./gradlew assembleDebug -Pandroid.args="-DSFML_DIR=$GITHUB_WORKSPACE/sfml_install/lib/cmake/SFML"
+          # This tells Gradle's C++ compiler exactly where to find the SFMLConfig.cmake file
+          ./gradlew assembleDebug \
+            -Pandroid.externalNativeBuild.cmake.arguments="-DSFML_DIR=$GITHUB_WORKSPACE/sfml_install/lib/cmake/SFML"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: sfml-android-apk
           path: SFML/examples/android/app/build/outputs/apk/debug/*.apk
-          
