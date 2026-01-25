@@ -7,11 +7,20 @@ jobs:
   build:
     runs-on: ubuntu-latest 
     container:
-      image: ubuntu:26.04
+      image: matheusmayron8/android-sdk-34:latest
 
     steps:
       - name: Setup Environment
         run: |
           apt update -y
-          apt install fastfetch -y
-          fastfetch
+          apt install git -y
+          git clone https://github.com/SFML/SFML.git
+          cd SFML/examples/android && chmod +x gradlew 
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: SFML/examples/android/app/build/outputs/apk/debug/*.apk
+          
