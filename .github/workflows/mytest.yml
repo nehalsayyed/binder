@@ -1,7 +1,7 @@
 name: Build
 
 on:
-  workflow_dispatch:   # manual trigger
+  workflow_dispatch:
 
 jobs:
   build:
@@ -10,20 +10,36 @@ jobs:
       image: matheusmayron8/android-sdk-34:latest
 
     steps:
-      - name: Setup Environment
+      - name: Install Build Dependencies
         run: |
           apt update -y
-          # Added libsfml-dev via apt
-          apt install git cmake ninja-build libsfml-dev -y
-          
-          git clone https://github.com/SFML/SFML.git
-          cd SFML/examples/android && chmod +x gradlew 
-          
-          # We still use the git source for the Android build
-          ./gradlew assembleDebug
-          
+          apt install git cmake ninja-build -y
+
+      - name: Clone SFML
+        run: git clone https://github.com/SFML/SFML.git
+
+      - name: Build SFML for Android
+        run: |
+          cd SFML
+          # Build SFML for Android arm64-v8a
+          cmake -S . -B build_android \
+            -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-21 \
+            -DCMAKE_INSTALL_PREFIX=./install_android
+          cmake --build build_android --target install
+
+      - name: Build Android Example
+        run: |
+          cd SFML/examples/android
+          chmod +x gradlew
+          # Point the example build to the libraries we just compiled
+          ./gradlew assembleDebug -Pandroid.args="-DSFML_DIR=$GITHUB_WORKSPACE/SFML/install_android/lib/cmake/SFML"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: android-debug-apk
           path: SFML/examples/android/app/build/outputs/apk/debug/*.apk
+          
