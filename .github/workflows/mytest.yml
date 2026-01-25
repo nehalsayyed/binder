@@ -10,11 +10,11 @@ jobs:
       image: matheusmayron8/android-sdk-34:latest
 
     steps:
-      - name: Install Dependencies and Upgrade CMake
+      - name: Install Build Tools
         run: |
           apt update -y
           apt install git ninja-build wget -y
-          # Ensure CMake 3.28.1 is active
+          # Install CMake 3.28.1 (SFML requires 3.28+)
           wget https://github.com/Kitware/CMake/releases/download/v3.28.1/cmake-3.28.1-linux-x86_64.sh
           chmod +x cmake-3.28.1-linux-x86_64.sh
           ./cmake-3.28.1-linux-x86_64.sh --skip-license --prefix=/usr/local
@@ -22,32 +22,34 @@ jobs:
       - name: Clone SFML
         run: git clone https://github.com/SFML/SFML.git
 
-      - name: Build SFML for Android
+      - name: Build SFML and Example
         run: |
+          # 1. Dynamically find the NDK toolchain file
+          NDK_TOOLCHAIN=$(find /android-home -name "android.toolchain.cmake" | head -n 1)
+          echo "Found NDK Toolchain at: $NDK_TOOLCHAIN"
+          
+          # 2. Build SFML for Android
           cd SFML
-          # Use absolute path to the toolchain file inside the container
           /usr/local/bin/cmake -S . -B build_android \
             -G Ninja \
             -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \
-            -DCMAKE_TOOLCHAIN_FILE=/android-home/ndk/26.1.10909125/build/cmake/android.toolchain.cmake \
+            -DCMAKE_TOOLCHAIN_FILE="$NDK_TOOLCHAIN" \
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-21 \
-            -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/SFML/install_android
+            -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/sfml_install
           /usr/local/bin/cmake --build build_android --target install
 
-      - name: Build Android Example
-        run: |
-          cd SFML/examples/android
+          # 3. Build the Example APK
+          cd examples/android
           chmod +x gradlew
-          # Pass the SFML_DIR so find_package(SFML) works correctly
-          # We also pass ANDROID_NDK so the Gradle CMake knows where the toolchain is
+          # We pass the SFML_DIR so the example's CMake knows where the libs are
           ./gradlew assembleDebug \
-            -Pandroid.args="-DSFML_DIR=$GITHUB_WORKSPACE/SFML/install_android/lib/cmake/SFML" \
+            -Pandroid.args="-DSFML_DIR=$GITHUB_WORKSPACE/sfml_install/lib/cmake/SFML" \
             -Dorg.gradle.project.android.externalNativeBuild.cmake.path=/usr/local/bin/cmake
 
-      - name: Upload APK
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-debug-apk
+          name: sfml-android-apk
           path: SFML/examples/android/app/build/outputs/apk/debug/*.apk
           
