@@ -14,3 +14,4 @@ jobs:
         run: |
           sudo apt update -y && sudo apt install neofetch -y
           neofetch
+          docker info
