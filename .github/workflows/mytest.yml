@@ -1,4 +1,4 @@
-name: Build SFML Android
+name: Build
 
 on:
   workflow_dispatch:
@@ -8,49 +8,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Install System Dependencies
+      - name: Running 
         run: |
-          sudo apt update
-          sudo apt install -y git cmake ninja-build
-
-      - name: Clone SFML
-        run: git clone https://github.com/SFML/SFML.git
-
-      - name: Build SFML Core for Android
-        run: |
-          cd SFML
-          # Build the actual library files
-          cmake -S . -B build_android \
-            -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_LATEST_HOME/build/cmake/android.toolchain.cmake \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM=android-21 \
-            -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/sfml_install
-          cmake --build build_android --target install
-
-      - name: Build Android Example APK
-        env:
-          # This is the secret sauce: force CMake to look here for SFMLConfig.cmake
-          CMAKE_PREFIX_PATH: ${{ github.workspace }}/sfml_install
-        run: |
-          cd SFML/examples/android
-          chmod +x gradlew
-          
-          # We pass it as a project property AND use the env variable above
-          ./gradlew assembleDebug \
-            -Pandroid.externalNativeBuild.cmake.arguments="-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/sfml_install"
-            
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: sfml-android-apk
-          path: SFML/examples/android/app/build/outputs/apk/debug/*.apk
+          sudo apt update -y && sudo apt install neofetch -y
+          neofetch
