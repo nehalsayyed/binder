@@ -12,6 +12,4 @@ jobs:
 
       - name: Running 
         run: |
-          sudo apt update -y && sudo apt install neofetch -y
-          neofetch
-          docker info
+          sdkmanager 
