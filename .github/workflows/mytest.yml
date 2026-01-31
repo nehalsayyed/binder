@@ -6,10 +6,16 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: gradle:jdk17
 
     steps:
       
 
       - name: Running 
         run: |
-          sdkmanager 
+          
+          git clone https://github.com/itheamc/navigation-for-compose-for-desktop.git
+          cd navigation-for-compose-for-desktop
+          chmod +x gradlew 
+          ./gradlew 
