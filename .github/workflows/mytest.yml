@@ -14,5 +14,7 @@ jobs:
         run: |
           choco install fastfetch -y
           fastfetch
+          java --version 
+          gradle --version
           
           
