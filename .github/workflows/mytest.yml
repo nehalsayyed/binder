@@ -1,5 +1,5 @@
 name: Build Android TCC
-on: [push, workflow_dispatch]
+on: workflow_dispatch
 
 jobs:
   build:
@@ -8,32 +8,35 @@ jobs:
       - name: Checkout TCC
         run: git clone --depth 1 https://repo.or.cz/tinycc.git .
 
-      - name: Compile
+      - name: Compile TCC
         run: |
-          # 1. Setup paths for NDK 27 (standard on GH runners)
+          # 1. Setup paths to the NDK installed on the runner
           export TOOLCHAIN=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64
-          export CROSS=$TOOLCHAIN/bin/aarch64-linux-android21-
+          export CROSS_COMPILE=$TOOLCHAIN/bin/aarch64-linux-android21-
           
-          # 2. Configure
-          # HOST_CC is for the build tools (c2str), CC is for the Android binary
+          # 2. Configure TCC
+          # We set --cc to the Android clang and --ar to the Android ar
           ./configure \
             --cpu=aarch64 \
-            --cc=${CROSS}clang \
-            --ar=${CROSS}llvm-ar \
+            --cc=${CROSS_COMPILE}clang \
+            --ar=${CROSS_COMPILE}llvm-ar \
             --extra-cflags="-fPIC" \
             --extra-ldflags="-static"
 
-          # 3. Build using local gcc for tools and NDK for TCC
+          # 3. The Magic Step: Build
+          # We set HOST_CC=gcc so 'c2str' is built for Linux (to run now)
+          # while TCC itself is built for Android
           make HOST_CC=gcc
 
-          # 4. Prepare for Android JNI trick
+          # 4. Prepare the file for Android JNI folder
+          # Android only allows execution of files named lib*.so in jniLibs
           cp tcc libtcc.so
-          ${CROSS}llvm-strip libtcc.so
+          ${CROSS_COMPILE}llvm-strip libtcc.so
 
-      - name: Upload
+      - name: Upload TCC Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tcc-pkg
+          name: tcc-android-binaries
           path: |
             libtcc.so
             include/*.h
