@@ -1,19 +1,28 @@
-name: Build 
+name: Manual Windows Build
 
 on:
-  workflow_dispatch:   # manual trigger
+  workflow_dispatch: # Allows manual trigger
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-      
+      - name: Install JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-      - name: Install dependencies
+      - name: Manually Clone Repository
+        shell: cmd
         run: |
-          choco install fastfetch git -y
-          fastfetch
-          git clone https://github.com/MeteorDevelopment/meteor-client.git
-          cd meteor-client
-          gradlew.bat build
+          git clone https://github.com/MeteorDevelopment/meteor-client.git .
+          git submodule update --init --recursive
+
+      - name: Build with Gradle
+        shell: cmd
+        run: |
+          @on
+          call gradlew.bat build --stacktrace
+          
