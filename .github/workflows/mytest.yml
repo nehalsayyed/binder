@@ -1,5 +1,5 @@
 name: Build Android TCC
-on: workflow_dispatch
+on:  workflow_dispatch
 
 jobs:
   build:
@@ -10,12 +10,11 @@ jobs:
 
       - name: Compile TCC
         run: |
-          # 1. Setup paths to the NDK installed on the runner
+          # 1. Setup paths for NDK
           export TOOLCHAIN=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64
           export CROSS_COMPILE=$TOOLCHAIN/bin/aarch64-linux-android21-
           
-          # 2. Configure TCC
-          # We set --cc to the Android clang and --ar to the Android ar
+          # 2. Configure for Android
           ./configure \
             --cpu=aarch64 \
             --cc=${CROSS_COMPILE}clang \
@@ -23,13 +22,16 @@ jobs:
             --extra-cflags="-fPIC" \
             --extra-ldflags="-static"
 
-          # 3. The Magic Step: Build
-          # We set HOST_CC=gcc so 'c2str' is built for Linux (to run now)
-          # while TCC itself is built for Android
-          make HOST_CC=gcc
+          # 3. FIX: Manually build 'c2str' for the Runner (Linux x86_64)
+          # This prevents the "Syntax error: '(' unexpected" error
+          gcc -O2 conftest.c -o c2str.exe
 
-          # 4. Prepare the file for Android JNI folder
-          # Android only allows execution of files named lib*.so in jniLibs
+          # 4. Build TCC (Tell make to use our pre-built c2str.exe)
+          # We touch the file to make sure 'make' doesn't try to recompile it
+          touch c2str.exe
+          make
+
+          # 5. Prepare for Android APK
           cp tcc libtcc.so
           ${CROSS_COMPILE}llvm-strip libtcc.so
 
