@@ -1,54 +1,76 @@
-name: Build Android TCC (Docker)
-on: workflow_dispatch
+name: Build TinyCC for Android
+
+on:
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: cirrusci/android-sdk:30
+
+    env:
+      TCC_VERSION: 0.9.27
+      ANDROID_ABI: arm64-v8a
+      ANDROID_API: 21
 
     steps:
-      - name: Checkout TCC
+      - name: Install dependencies
         run: |
-          # Install basic tools that might be missing in the container
-          apt-get update && apt-get install -y git gcc make
-          git clone --depth 1 https://repo.or.cz/tinycc.git .
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            wget \
+            tar \
+            python3
 
-      - name: Compile TCC
+      - name: Download Android NDK
         run: |
-          # 1. FIND the NDK path automatically
-          # This removes the "path not found" error
-          NDK_ROOT=$(find / -name "ndk" -type d -print -quit 2>/dev/null || find / -name "ndk-bundle" -type d -print -quit 2>/dev/null)
-          echo "Found NDK at: $NDK_ROOT"
-          
-          # 2. Setup Toolchain
-          TOOLCHAIN=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64
-          CROSS=$TOOLCHAIN/bin/aarch64-linux-android21-
-          
-          # 3. Configure
+          wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
+          unzip android-ndk-r26d-linux.zip
+          echo "NDK_HOME=$PWD/android-ndk-r26d" >> $GITHUB_ENV
+
+      - name: Download TinyCC source
+        run: |
+          wget https://download.savannah.gnu.org/releases/tinycc/tcc-${TCC_VERSION}.tar.bz2
+          tar -xf tcc-${TCC_VERSION}.tar.bz2
+
+      - name: Configure TinyCC for Android
+        run: |
+          export TOOLCHAIN=$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64
+          export TARGET=aarch64-linux-android
+          export API=${ANDROID_API}
+
+          export CC=$TOOLCHAIN/bin/${TARGET}${API}-clang
+          export AR=$TOOLCHAIN/bin/llvm-ar
+          export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
+          export STRIP=$TOOLCHAIN/bin/llvm-strip
+
+          cd tcc-${TCC_VERSION}
+
           ./configure \
-            --cpu=aarch64 \
-            --cc=${CROSS}clang \
-            --ar=${CROSS}llvm-ar \
-            --extra-cflags="-fPIC" \
-            --extra-ldflags="-static"
+            --cross-prefix=${TARGET}- \
+            --cc="$CC" \
+            --ar="$AR" \
+            --ranlib="$RANLIB" \
+            --strip="$STRIP" \
+            --cpu=arm64 \
+            --enable-shared \
+            --prefix=/usr
 
-          # 4. FIX the c2str error by building it for the container host
-          gcc -O2 conftest.c -o c2str.exe
-          ./c2str.exe include/tccdefs.h tccdefs_.h
-          
-          # 5. Build
-          make
+      - name: Build TinyCC
+        run: |
+          cd tcc-${TCC_VERSION}
+          make -j$(nproc)
 
-          # 6. Prepare libtcc.so for JNI
-          cp tcc libtcc.so
-          ${CROSS}llvm-strip libtcc.so
+      - name: Collect artifacts
+        run: |
+          mkdir -p output/lib output/include
 
-      - name: Upload Artifact
+          cp tcc-${TCC_VERSION}/libtcc.so output/lib/
+          cp -r tcc-${TCC_VERSION}/include/* output/include/
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tcc-final-binary
-          path: |
-            libtcc.so
-            include/*.h
-            
+          name: tcc-android-arm64
+          path: output
+          
