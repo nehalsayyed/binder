@@ -2,49 +2,52 @@ name: Build Android TCC (Docker)
 on: workflow_dispatch
 
 jobs:
-  build-in-container:
+  build:
     runs-on: ubuntu-latest
-    # This runs the entire job INSIDE the NDK-enabled Docker container
     container:
-      image: jangrewe/gitlab-ci-android:latest
+      image: cirrusci/android-sdk:30
 
     steps:
       - name: Checkout TCC
         run: |
-          # The container might not have git installed, or might need a refresh
-          apt-get update && apt-get install -y git gcc
+          # Install basic tools that might be missing in the container
+          apt-get update && apt-get install -y git gcc make
           git clone --depth 1 https://repo.or.cz/tinycc.git .
 
       - name: Compile TCC
         run: |
-          # Use the NDK path provided by the Docker image environment
-          export TOOLCHAIN=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64
-          export CROSS_COMPILE=$TOOLCHAIN/bin/aarch64-linux-android21-
+          # 1. FIND the NDK path automatically
+          # This removes the "path not found" error
+          NDK_ROOT=$(find / -name "ndk" -type d -print -quit 2>/dev/null || find / -name "ndk-bundle" -type d -print -quit 2>/dev/null)
+          echo "Found NDK at: $NDK_ROOT"
           
-          # 1. Configure for Android
+          # 2. Setup Toolchain
+          TOOLCHAIN=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64
+          CROSS=$TOOLCHAIN/bin/aarch64-linux-android21-
+          
+          # 3. Configure
           ./configure \
             --cpu=aarch64 \
-            --cc=${CROSS_COMPILE}clang \
-            --ar=${CROSS_COMPILE}llvm-ar \
+            --cc=${CROSS}clang \
+            --ar=${CROSS}llvm-ar \
             --extra-cflags="-fPIC" \
             --extra-ldflags="-static"
 
-          # 2. FIX: Build 'c2str' for the local container (x86_64) 
-          # so it can run during the build process
+          # 4. FIX the c2str error by building it for the container host
           gcc -O2 conftest.c -o c2str.exe
           ./c2str.exe include/tccdefs.h tccdefs_.h
           
-          # 3. Build the actual TCC binary
+          # 5. Build
           make
 
-          # 4. Prepare for Android JNI "trick"
+          # 6. Prepare libtcc.so for JNI
           cp tcc libtcc.so
-          ${CROSS_COMPILE}llvm-strip libtcc.so
+          ${CROSS}llvm-strip libtcc.so
 
-      - name: Upload Artifacts
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tcc-docker-binary
+          name: tcc-final-binary
           path: |
             libtcc.so
             include/*.h
