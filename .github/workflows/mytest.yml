@@ -6,16 +6,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: gradle:jdk17
+    
 
     steps:
       
 
       - name: Running 
         run: |
-          
-          git clone https://github.com/itheamc/navigation-for-compose-for-desktop.git
-          cd navigation-for-compose-for-desktop
-          chmod +x gradlew 
-          ./gradlew build
+
+          sudo apt update -y && sudo apt install gcc g++ cmake make git -y
+          git clone https://github.com/hrydgard/ppsspp.git
+          cd ppsspp
+          docker build -t psp .
