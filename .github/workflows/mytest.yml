@@ -1,78 +1,53 @@
 name: Build TinyCC for Android
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:   # manual trigger
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      TCC_VERSION: 0.9.27
-      ANDROID_API: 21
-      ANDROID_ABI: arm64-v8a
-
     steps:
+      - name: Checkout empty repo
+        uses: actions/checkout@v4
+
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            wget \
-            tar \
-            unzip \
-            python3
+          sudo apt-get install -y git build-essential automake autoconf libtool pkg-config
 
-      - name: Download Android NDK
+      - name: Clone TinyCC
         run: |
-          wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
-          unzip android-ndk-r26d-linux.zip
-          echo "NDK_HOME=$PWD/android-ndk-r26d" >> $GITHUB_ENV
+          git clone https://repo.or.cz/tinycc.git tcc
 
-      - name: Download TinyCC source
-        run: |
-          wget https://download.savannah.gnu.org/releases/tinycc/tcc-${TCC_VERSION}.tar.bz2
-          tar -xf tcc-${TCC_VERSION}.tar.bz2
+      - name: Setup Android NDK
+        uses: android-actions/setup-android@v3
+        with:
+          ndk-version: r26d   # adjust version if needed
 
-      - name: Configure TinyCC for Android (arm64)
+      - name: Configure build for Android
         run: |
-          export TOOLCHAIN=$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64
+          export NDK=$ANDROID_NDK_HOME
+          export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
           export TARGET=aarch64-linux-android
-          export API=${ANDROID_API}
-
+          export API=21
           export CC=$TOOLCHAIN/bin/${TARGET}${API}-clang
-          export AR=$TOOLCHAIN/bin/llvm-ar
-          export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
-          export STRIP=$TOOLCHAIN/bin/llvm-strip
-
-          echo "Using CC=$CC"
-          $CC --version
-
-          cd tcc-${TCC_VERSION}
-
-          ./configure \
-            --cc="$CC" \
-            --ar="$AR" \
-            --ranlib="$RANLIB" \
-            --strip="$STRIP" \
-            --cpu=arm64 \
-            --enable-shared \
-            --prefix=/usr
+          cd tcc
+          ./configure --cc=$CC --cpu=aarch64 --enable-cross --prefix=$PWD/install
 
       - name: Build TinyCC
         run: |
-          cd tcc-${TCC_VERSION}
+          cd tcc
           make -j$(nproc)
+          make install
 
-      - name: Prepare artifacts
+      - name: Package artifacts
         run: |
-          mkdir -p output/lib/arm64-v8a output/include
-          cp tcc-${TCC_VERSION}/libtcc.so output/lib/arm64-v8a/
-          cp -r tcc-${TCC_VERSION}/include/* output/include/
+          cd tcc/install
+          tar -czf ../../tcc-android.tar.gz lib include
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tcc-android-arm64
-          path: output
-          
+          name: tcc-android
+          path: tcc-android.tar.gz
