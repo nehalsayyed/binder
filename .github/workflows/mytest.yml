@@ -1,20 +1,50 @@
-name: Build
-
-on:
-  workflow_dispatch:
+name: Build Android libtcc.so
+on: push
 
 jobs:
-  build:
+  build-ndk-shared:
     runs-on: ubuntu-latest
-    
-
     steps:
-      
+      - name: Checkout TCC
+        run: git clone https://repo.or.cz/tinycc.git
 
-      - name: Running 
+      - name: Setup Android NDK
+        uses: n0rt3n/setup-android-ndk@v1
+        with:
+          ndk-version: r25c
+
+      - name: Compile libtcc.so for aarch64
         run: |
+          cd tinycc
+          export TOOLCHAIN=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64
+          export TARGET=aarch64-linux-android
+          export API=21
+          export CC=$TOOLCHAIN/bin/$TARGET$API-clang
+          export AR=$TOOLCHAIN/bin/llvm-ar
+          export STRIP=$TOOLCHAIN/bin/llvm-strip
+          
+          # 1. Configure for shared library
+          ./configure \
+            --cpu=aarch64 \
+            --cc=$CC \
+            --ar=$AR \
+            --extra-cflags="-fPIC" \
+            --enable-shared
 
-          sudo apt update -y && sudo apt install gcc g++ cmake make git -y
-          git clone --recursive https://github.com/hrydgard/ppsspp.git
-          cd ppsspp
-          docker build -t psp .
+          # 2. Build everything
+          make
+
+          # 3. Prepare the .so for Android
+          # We rename the main 'tcc' executable to 'libtcc.so' 
+          # so Android extracts it with EXECUTE permissions.
+          cp tcc libtcc.so
+          $STRIP libtcc.so
+
+      - name: Upload Shared Library
+        uses: actions/upload-artifact@v4
+        with:
+          name: libtcc-shared
+          path: |
+            tinycc/libtcc.so
+            tinycc/include/**
+            
