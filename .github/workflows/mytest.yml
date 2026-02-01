@@ -14,7 +14,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git build-essential automake autoconf libtool pkg-config
+          sudo apt-get install -y git build-essential automake autoconf libtool pkg-config perl texinfo
 
       - name: Clone TinyCC
         run: |
@@ -23,15 +23,24 @@ jobs:
       - name: Setup Android NDK
         uses: android-actions/setup-android@v3
         with:
-          ndk-version: r26d   # adjust version if needed
+          ndk-version: r27b   # latest stable NDK
 
-      - name: Configure build for Android
+      - name: Configure environment
         run: |
           export NDK=$ANDROID_NDK_HOME
           export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
           export TARGET=aarch64-linux-android
           export API=21
           export CC=$TOOLCHAIN/bin/${TARGET}${API}-clang
+          echo "CC=$CC" >> $GITHUB_ENV
+
+      - name: Build c2str helper
+        run: |
+          cd tcc
+          gcc -o c2str c2str.c
+
+      - name: Configure TinyCC for Android
+        run: |
           cd tcc
           ./configure --cc=$CC --cpu=aarch64 --enable-cross --prefix=$PWD/install
 
