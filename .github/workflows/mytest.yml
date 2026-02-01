@@ -9,8 +9,8 @@ jobs:
 
     env:
       TCC_VERSION: 0.9.27
-      ANDROID_ABI: arm64-v8a
       ANDROID_API: 21
+      ANDROID_ABI: arm64-v8a
 
     steps:
       - name: Install dependencies
@@ -20,6 +20,7 @@ jobs:
             build-essential \
             wget \
             tar \
+            unzip \
             python3
 
       - name: Download Android NDK
@@ -33,7 +34,7 @@ jobs:
           wget https://download.savannah.gnu.org/releases/tinycc/tcc-${TCC_VERSION}.tar.bz2
           tar -xf tcc-${TCC_VERSION}.tar.bz2
 
-      - name: Configure TinyCC for Android
+      - name: Configure TinyCC for Android (arm64)
         run: |
           export TOOLCHAIN=$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64
           export TARGET=aarch64-linux-android
@@ -44,10 +45,12 @@ jobs:
           export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
           export STRIP=$TOOLCHAIN/bin/llvm-strip
 
+          echo "Using CC=$CC"
+          $CC --version
+
           cd tcc-${TCC_VERSION}
 
           ./configure \
-            --cross-prefix=${TARGET}- \
             --cc="$CC" \
             --ar="$AR" \
             --ranlib="$RANLIB" \
@@ -61,11 +64,10 @@ jobs:
           cd tcc-${TCC_VERSION}
           make -j$(nproc)
 
-      - name: Collect artifacts
+      - name: Prepare artifacts
         run: |
-          mkdir -p output/lib output/include
-
-          cp tcc-${TCC_VERSION}/libtcc.so output/lib/
+          mkdir -p output/lib/arm64-v8a output/include
+          cp tcc-${TCC_VERSION}/libtcc.so output/lib/arm64-v8a/
           cp -r tcc-${TCC_VERSION}/include/* output/include/
 
       - name: Upload artifacts
