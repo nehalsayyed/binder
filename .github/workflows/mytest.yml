@@ -1,46 +1,40 @@
-name: Build Android libtcc.so
-on: workflow_dispatch
+name: Build Android TCC
+on: [push, workflow_dispatch]
 
 jobs:
-  build-ndk-shared:
+  build:
     runs-on: ubuntu-latest
     steps:
-      # CRITICAL: This pulls the TCC source code into the runner
       - name: Checkout TCC
-        run: git clone https://repo.or.cz/tinycc.git .
+        run: git clone --depth 1 https://repo.or.cz/tinycc.git .
 
-      - name: Compile libtcc.so for aarch64
+      - name: Compile
         run: |
-          # Use the NDK already installed on the GitHub runner
-          # Path is usually /usr/local/lib/android/sdk/ndk-bundle or similar
-          export NDK_PATH=$ANDROID_NDK_HOME
-          export TOOLCHAIN=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64
+          # 1. Setup paths for NDK 27 (standard on GH runners)
+          export TOOLCHAIN=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64
+          export CROSS=$TOOLCHAIN/bin/aarch64-linux-android21-
           
-          # Target settings
-          export TARGET=aarch64-linux-android
-          export API=21
-          export CC=$TOOLCHAIN/bin/$TARGET$API-clang
-          export AR=$TOOLCHAIN/bin/llvm-ar
-          export STRIP=$TOOLCHAIN/bin/llvm-strip
-          
-          # Configure and Build
+          # 2. Configure
+          # HOST_CC is for the build tools (c2str), CC is for the Android binary
           ./configure \
             --cpu=aarch64 \
-            --cc=$CC \
-            --ar=$AR \
+            --cc=${CROSS}clang \
+            --ar=${CROSS}llvm-ar \
             --extra-cflags="-fPIC" \
-            --enable-shared
+            --extra-ldflags="-static"
 
-          make
+          # 3. Build using local gcc for tools and NDK for TCC
+          make HOST_CC=gcc
 
-          # Rename the executable binary to .so so Android allows execution
+          # 4. Prepare for Android JNI trick
           cp tcc libtcc.so
-          $STRIP libtcc.so
+          ${CROSS}llvm-strip libtcc.so
 
-      - name: Upload Artifacts
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: tcc-android-bundle
+          name: tcc-pkg
           path: |
             libtcc.so
-            include/
+            include/*.h
+            
