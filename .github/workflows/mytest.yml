@@ -12,9 +12,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          choco install fastfetch -y
+          choco install fastfetch git -y
           fastfetch
-          java --version 
-          gradle --version
-          
-          
+          git clone https://github.com/MeteorDevelopment/meteor-client.git
+          cd meteor-client
+          gradlew.bat build
