@@ -1,38 +1,19 @@
-name: Manual .NET Build
+name: Manual Build
 
 on:
   workflow_dispatch: # Allows manual trigger
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
+    container:
+      image: gradle:jdk17
 
     steps:
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '6.0.x' # Adjusted for typical NetCore projects
-
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v1.1
-
-      - name: Manually Clone Repository
-        shell: cmd
-        run: |
-          git clone https://github.com/amirreza-tabeshfard/AT-NetCore-NotepadPlusPlus.git .
-
-      - name: Restore NuGet Packages
-        shell: cmd
-        run: nuget restore AT-Notepad.sln
-
-      - name: Build Solution
-        shell: cmd
-        run: |
-          msbuild AT-Notepad.sln /p:Configuration=Release /p:Platform="Any CPU" /p:OutputPath=build_output\
-
-      - name: Upload Build Executable
-        uses: actions/upload-artifact@v4
-        with:
-          name: AT-Notepad-Exe
-          path: out/**/*.exe
+       - run: |
+            git clone https://github.com/skylot/jadx.git
+            cd jadx
+            ./gradlew dist
           
+
+      
