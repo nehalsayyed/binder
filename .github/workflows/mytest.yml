@@ -7,13 +7,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: gradle:jdk17
+      image: gradle:jdk21
 
     steps:
        - run: |
-            git clone https://github.com/skylot/jadx.git
-            cd jadx
-            ./gradlew dist
-          
+            git clone https://github.com/gradle/gradle.git && cd gradle && chmod +x gradlew && ./gradlew 
+            
 
       
