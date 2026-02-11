@@ -8,7 +8,9 @@ jobs:
    runs-on: macos-latest
    steps:
     - run: |
-            uname -a 
+            gradle --version
+            java --version
+            sdkmanager --list
      
     
 
