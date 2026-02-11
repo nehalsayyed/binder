@@ -8,7 +8,8 @@ jobs:
    runs-on: ubuntu-latest
    steps:
      - uses: vmactions/netbsd-vm@v1
-     - run: |
+       with:
+         run: |
             uname -a 
             sysctl hw.model
             sysctl hw.ncpu
