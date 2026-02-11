@@ -5,13 +5,17 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container:
-      image: gradle:jdk21
+   runs-on: ubuntu-latest
+   steps:
+     - uses: vmactions/netbsd-vm@v1
+     - run: |
+            uname -a 
+            sysctl hw.model
+            sysctl hw.ncpu
+            sysctl hw.physmem
+            sysctl hw.usermem
+            vmstat
+     
+    
 
-    steps:
-       - run: |
-            git clone https://github.com/gradle/gradle.git && cd gradle && chmod +x gradlew && ./gradlew 
-            
-
-      
+  
