@@ -1,7 +1,0 @@
-nasm
-gcc
-genisoimage
-neofetch
-tcpdump
-net-tools
-qemu-system-x86-64
