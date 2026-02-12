@@ -7,13 +7,12 @@ jobs:
   build:
    runs-on: ubuntu-latest
    container:
-     image: gradle:jdk21
+     image: maven:3-openjdk-17
    steps:
     - run: |
-            git clone https://github.com/MeteorDevelopment/meteor-client.git
-            cd meteor-client
-            chmod +x gradlew 
-            ./gradlew build 
+            git clone https://github.com/keycloak/keycloak.git
+            cd keycloak
+            mvn package 
      
     
 
