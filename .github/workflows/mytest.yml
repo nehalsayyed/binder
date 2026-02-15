@@ -1,6 +1,6 @@
-name: Android 16 High-RAM Headless
+name: Android 16 AVF & Linux Terminal Detection
 on:
-  workflow_dispatch: # Allows manual trigger
+  workflow_dispatch:
 
 jobs:
   run-emulator:
@@ -24,39 +24,55 @@ jobs:
       - name: Run Emulator (6GB RAM)
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35 # Android 15/16 Preview
+          api-level: 35 # Use 35 or 36 if available in your runner's region
           target: google_apis
           arch: x86_64
           force-avd-creation: true
           disable-animations: true
-          # Assigning 6GB RAM (6144MB)
+          # High-RAM configuration (6144MB)
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 6144
           script: |
-            echo "--- WAITING FOR DEVICE ---"
+            echo "--- WAITING FOR BOOT ---"
             adb wait-for-device
             
-            echo "--- SYSTEM INFORMATION ---"
-            echo "Model: $(adb shell getprop ro.product.model)"
-            echo "API Level: $(adb shell getprop ro.build.version.sdk)"
+            echo "--- 1. MEMORY & SYSTEM CHECK ---"
+            echo "Confirmed Total RAM:"
+            adb shell cat /proc/meminfo | grep MemTotal
+            echo "Android Version: $(adb shell getprop ro.build.version.release)"
             
-            echo "--- MEMORY VERIFICATION ---"
-            # This confirms the 6GB assignment
-            adb shell free -m
+            echo "--- 2. INSTALLED APP LIST (3RD PARTY) ---"
+            # Lists apps installed by the user/system that aren't core android
+            adb shell pm list packages -3
             
-            echo "--- CPU INFORMATION ---"
-            adb shell cat /proc/cpuinfo | grep "model name" | head -n 1
+            echo "--- 3. DETECTING AVF (VIRTUALIZATION) ---"
+            # Check for the virtualization software feature
+            if adb shell pm list features | grep -q "android.software.virtualization_framework"; then
+              echo "✅ AVF Support: Detected"
+            else
+              echo "❌ AVF Support: Not enabled in this image"
+            fi
             
-            echo "--- CAPTURING SCREENSHOT ---"
-            # Using /data/local/tmp/ to avoid permission issues on /sdcard/
+            echo "--- 4. LINUX TERMINAL DETECTION ---"
+            # The Linux Terminal app package name
+            if adb shell pm list packages | grep -q "com.android.virtualization.terminal"; then
+              echo "✅ Linux Terminal App: Found"
+              echo "Checking Linux Dev Environment Setting..."
+              adb shell settings get global linux_development_environment_enabled
+            else
+              echo "⚠️ Linux Terminal App: Not found in this system image."
+            fi
+            
+            echo "--- 5. SERVICE STATUS ---"
+            # Lists active virtualization services
+            adb shell service list | grep -i "virtualization"
+            
+            echo "--- 6. SCREENSHOT ---"
             adb shell screencap -p /data/local/tmp/headless_boot.png
             adb pull /data/local/tmp/headless_boot.png .
-            
-            echo "--- LISTING FILES ---"
-            ls -lh headless_boot.png
 
-      - name: Upload Screenshot Artifact
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-6gb-ram-screenshot
+          name: android-16-results
           path: headless_boot.png
           
