@@ -1,4 +1,4 @@
-name: Android 16 AVF Detection
+name: Android 16 Advanced AVF
 on:
   workflow_dispatch:
 
@@ -15,7 +15,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Enable KVM permissions
+      - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
@@ -29,40 +29,40 @@ jobs:
           arch: x86_64
           force-avd-creation: true
           disable-animations: true
-          # High-RAM configuration (6144MB)
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 6144
           script: |
-            echo "--- WAITING FOR BOOT ---"
             adb wait-for-device
             
-            echo "--- 1. SYSTEM & MEMORY CHECK ---"
-            # Since you follow heap limits like $1FFFFFFFF$, this confirms the 6GB allocation
-            adb shell cat /proc/meminfo | grep MemTotal
-            echo "Android Version: $(adb shell getprop ro.build.version.release)"
+            echo "--- 1. FORCE-ENABLING LINUX SETTINGS ---"
+            # This turns on the 'Linux Development Environment' toggle in Developer Options
+            adb shell settings put global linux_development_environment_enabled 1
             
-            echo "--- 2. INSTALLED APP LIST (USER APPS) ---"
-            # Lists apps you've installed or non-core system apps
-            adb shell pm list packages -3
+            echo "--- 2. CHECKING INSTALLED APPS ---"
+            adb shell pm list packages
             
-            echo "--- 3. DETECTING AVF (VIRTUALIZATION) ---"
-            # Fixed if-statement syntax for GitHub Actions shell
-            if adb shell pm list features | grep -q "android.software.virtualization_framework"; then echo "✅ AVF Support: Detected"; else echo "❌ AVF Support: Not enabled"; fi
+            echo "--- 3. AVF VIRTUALIZATION SCAN ---"
+            # Use || true to prevent 'grep' from failing the whole build if it finds nothing
+            adb shell pm list features | grep "virtualization" || echo "Virtualization feature flag not found"
             
-            echo "--- 4. LINUX TERMINAL DETECTION ---"
-            # Searching for the official Android 16 Terminal package
-            if adb shell pm list packages | grep -q "com.android.virtualization.terminal"; then echo "✅ Linux Terminal App: Found"; else echo "⚠️ Linux Terminal App: Not found in this image"; fi
-            
-            echo "--- 5. VIRTUALIZATION SERVICE STATUS ---"
-            adb shell service list | grep -i "virtualization"
-            
-            echo "--- 6. SCREENSHOT ---"
-            # Always use /data/local/tmp/ to avoid 'Operation not permitted' errors
-            adb shell screencap -p /data/local/tmp/screen.png
-            adb pull /data/local/tmp/screen.png .
+            echo "--- 4. SERVICE LIST (VIRTUALIZATION) ---"
+            # Looking for 'virtualization_service'
+            adb shell service list | grep -i "virt" || echo "No virtualization services are active yet"
 
-      - name: Upload Artifacts
+            echo "--- 5. PROBING FOR P-KVM ---"
+            # Checking if the kernel has the Protected KVM enabled (The heart of AVF)
+            adb shell "dmesg | grep -i pkvm" || echo "pKVM not found in dmesg (Typical for emulators)"
+
+            echo "--- 6. SYSTEM INFO SUMMARY ---"
+            echo "RAM: $(adb shell cat /proc/meminfo | grep MemTotal)"
+            echo "Kernel: $(adb shell uname -a)"
+
+            echo "--- 7. SCREENSHOT ---"
+            adb shell screencap -p /data/local/tmp/final.png
+            adb pull /data/local/tmp/final.png .
+
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: android-16-results
-          path: screen.png
+          name: android-16-avf-data
+          path: final.png
           
