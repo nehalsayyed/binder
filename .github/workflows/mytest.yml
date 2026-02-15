@@ -1,4 +1,4 @@
-name: Android 16 AVF & Linux Terminal Detection
+name: Android 16 AVF Detection
 on:
   workflow_dispatch:
 
@@ -24,7 +24,7 @@ jobs:
       - name: Run Emulator (6GB RAM)
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35 # Use 35 or 36 if available in your runner's region
+          api-level: 35
           target: google_apis
           arch: x86_64
           force-avd-creation: true
@@ -35,44 +35,34 @@ jobs:
             echo "--- WAITING FOR BOOT ---"
             adb wait-for-device
             
-            echo "--- 1. MEMORY & SYSTEM CHECK ---"
-            echo "Confirmed Total RAM:"
+            echo "--- 1. SYSTEM & MEMORY CHECK ---"
+            # Since you follow heap limits like $1FFFFFFFF$, this confirms the 6GB allocation
             adb shell cat /proc/meminfo | grep MemTotal
             echo "Android Version: $(adb shell getprop ro.build.version.release)"
             
-            echo "--- 2. INSTALLED APP LIST (3RD PARTY) ---"
-            # Lists apps installed by the user/system that aren't core android
+            echo "--- 2. INSTALLED APP LIST (USER APPS) ---"
+            # Lists apps you've installed or non-core system apps
             adb shell pm list packages -3
             
             echo "--- 3. DETECTING AVF (VIRTUALIZATION) ---"
-            # Check for the virtualization software feature
-            if adb shell pm list features | grep -q "android.software.virtualization_framework"; then
-              echo "✅ AVF Support: Detected"
-            else
-              echo "❌ AVF Support: Not enabled in this image"
-            fi
+            # Fixed if-statement syntax for GitHub Actions shell
+            if adb shell pm list features | grep -q "android.software.virtualization_framework"; then echo "✅ AVF Support: Detected"; else echo "❌ AVF Support: Not enabled"; fi
             
             echo "--- 4. LINUX TERMINAL DETECTION ---"
-            # The Linux Terminal app package name
-            if adb shell pm list packages | grep -q "com.android.virtualization.terminal"; then
-              echo "✅ Linux Terminal App: Found"
-              echo "Checking Linux Dev Environment Setting..."
-              adb shell settings get global linux_development_environment_enabled
-            else
-              echo "⚠️ Linux Terminal App: Not found in this system image."
-            fi
+            # Searching for the official Android 16 Terminal package
+            if adb shell pm list packages | grep -q "com.android.virtualization.terminal"; then echo "✅ Linux Terminal App: Found"; else echo "⚠️ Linux Terminal App: Not found in this image"; fi
             
-            echo "--- 5. SERVICE STATUS ---"
-            # Lists active virtualization services
+            echo "--- 5. VIRTUALIZATION SERVICE STATUS ---"
             adb shell service list | grep -i "virtualization"
             
             echo "--- 6. SCREENSHOT ---"
-            adb shell screencap -p /data/local/tmp/headless_boot.png
-            adb pull /data/local/tmp/headless_boot.png .
+            # Always use /data/local/tmp/ to avoid 'Operation not permitted' errors
+            adb shell screencap -p /data/local/tmp/screen.png
+            adb pull /data/local/tmp/screen.png .
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: android-16-results
-          path: headless_boot.png
+          path: screen.png
           
