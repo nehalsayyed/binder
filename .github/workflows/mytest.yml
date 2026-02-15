@@ -1,19 +1,13 @@
-name: Android 16 Advanced AVF
+name: Android 16 Boot Debian VM
 on:
   workflow_dispatch:
 
 jobs:
-  run-emulator:
+  run-vm:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
 
       - name: Enable KVM
         run: |
@@ -28,41 +22,43 @@ jobs:
           target: google_apis
           arch: x86_64
           force-avd-creation: true
-          disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 6144
           script: |
             adb wait-for-device
             
-            echo "--- 1. FORCE-ENABLING LINUX SETTINGS ---"
-            # This turns on the 'Linux Development Environment' toggle in Developer Options
-            adb shell settings put global linux_development_environment_enabled 1
+            echo "--- 1. DOWNLOAD DEBIAN CLOUD IMAGE ---"
+            # We download a small, specialized cloud-init debian image
+            curl -L -o debian.img https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.raw
             
-            echo "--- 2. CHECKING INSTALLED APPS ---"
-            adb shell pm list packages
+            echo "--- 2. PREPARING VM STORAGE ---"
+            adb shell mkdir -p /data/local/tmp/linux_vm
+            adb push debian.img /data/local/tmp/linux_vm/debian.img
             
-            echo "--- 3. AVF VIRTUALIZATION SCAN ---"
-            # Use || true to prevent 'grep' from failing the whole build if it finds nothing
-            adb shell pm list features | grep "virtualization" || echo "Virtualization feature flag not found"
+            echo "--- 3. DETECTING VIRTUALIZATION BINARY ---"
+            # Checking for 'vm' tool or 'crosvm'
+            adb shell which vm || echo "Standard 'vm' tool not found"
             
-            echo "--- 4. SERVICE LIST (VIRTUALIZATION) ---"
-            # Looking for 'virtualization_service'
-            adb shell service list | grep -i "virt" || echo "No virtualization services are active yet"
-
-            echo "--- 5. PROBING FOR P-KVM ---"
-            # Checking if the kernel has the Protected KVM enabled (The heart of AVF)
-            adb shell "dmesg | grep -i pkvm" || echo "pKVM not found in dmesg (Typical for emulators)"
-
-            echo "--- 6. SYSTEM INFO SUMMARY ---"
-            echo "RAM: $(adb shell cat /proc/meminfo | grep MemTotal)"
-            echo "Kernel: $(adb shell uname -a)"
-
-            echo "--- 7. SCREENSHOT ---"
-            adb shell screencap -p /data/local/tmp/final.png
-            adb pull /data/local/tmp/final.png .
+            echo "--- 4. ATTEMPTING TO BOOT VM ---"
+            # We use the 'vm' command which is the frontend for AVF
+            # This requires the virtualization_service to be active
+            # Note: This may fail if the emulator's pKVM doesn't support nested x86 virtualization
+            adb shell "vm run /data/local/tmp/linux_vm/debian.img" &
+            
+            echo "--- 5. MONITORING VM STATUS ---"
+            sleep 30
+            adb shell "vm list" || echo "No VMs currently running"
+            
+            echo "--- 6. RECOVERY & LOGS ---"
+            # If it fails, we check dmesg for KVM errors
+            adb shell "dmesg | grep -i kvm" | tail -n 20
+            
+            echo "--- 7. FINAL SCREENSHOT ---"
+            adb shell screencap -p /data/local/tmp/vm_test.png
+            adb pull /data/local/tmp/vm_test.png .
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: android-16-avf-data
-          path: final.png
+          name: debian-boot-results
+          path: vm_test.png
           
