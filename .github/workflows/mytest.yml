@@ -1,9 +1,9 @@
-name: Android 16 Info Check
+name: Android 16 High-RAM Headless
 on:
-  workflow_dispatch: # Allows you to run this manually
+  workflow_dispatch: # Allows manual trigger
 
 jobs:
-  inspect-android:
+  run-emulator:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -15,41 +15,48 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Enable KVM group permissions
+      - name: Enable KVM permissions
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Run Emulator and Print Info
+      - name: Run Emulator (6GB RAM)
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35 # Use 35 or 36 (preview) depending on latest available stable/preview
+          api-level: 35 # Android 15/16 Preview
           target: google_apis
           arch: x86_64
-          force-avd-creation: false
+          force-avd-creation: true
           disable-animations: true
+          # Assigning 6GB RAM (6144MB)
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 6144
           script: |
-            echo "--- DEVICE BOOTED ---"
-            echo "Device Model:"
-            adb shell getprop ro.product.model
-            echo "Android Version:"
-            adb shell getprop ro.build.version.release
-            echo "API Level:"
-            adb shell getprop ro.build.version.sdk
-            echo "Kernel Info:"
-            adb shell uname -a
-            echo "Memory Info:"
+            echo "--- WAITING FOR DEVICE ---"
+            adb wait-for-device
+            
+            echo "--- SYSTEM INFORMATION ---"
+            echo "Model: $(adb shell getprop ro.product.model)"
+            echo "API Level: $(adb shell getprop ro.build.version.sdk)"
+            
+            echo "--- MEMORY VERIFICATION ---"
+            # This confirms the 6GB assignment
             adb shell free -m
-            echo "CPU Info:"
+            
+            echo "--- CPU INFORMATION ---"
             adb shell cat /proc/cpuinfo | grep "model name" | head -n 1
-            echo "--- SCREENSHOT CAPTURE ---"
-            adb shell screencap -p /sdcard/boot_screen.png
-            adb pull /sdcard/boot_screen.png .
+            
+            echo "--- CAPTURING SCREENSHOT ---"
+            # Using /data/local/tmp/ to avoid permission issues on /sdcard/
+            adb shell screencap -p /data/local/tmp/headless_boot.png
+            adb pull /data/local/tmp/headless_boot.png .
+            
+            echo "--- LISTING FILES ---"
+            ls -lh headless_boot.png
 
-      - name: Upload Screenshot
+      - name: Upload Screenshot Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-16-screenshot
-          path: boot_screen.png
+          name: android-6gb-ram-screenshot
+          path: headless_boot.png
           
