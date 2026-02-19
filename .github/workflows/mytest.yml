@@ -1,64 +1,42 @@
-name: Android 16 Boot Debian VM
-on:
-  workflow_dispatch:
+name: PipeWire Info Check
+
+on: workflow_dispatch
 
 jobs:
-  run-vm:
+  check-audio-stack:
     runs-on: ubuntu-latest
+    
+    # Setting your heap limit environment variable globally for the job
+    env:
+      DOTNET_GCHeapHardLimit: "1FFFFFFFF"
+
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Enable KVM
+      - name: Install PipeWire and Utilities
         run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
+          sudo apt-get update
+          sudo apt-get install -y \
+            pipewire \
+            pipewire-pulse \
+            wireplumber \
+            pulseaudio-utils \
+            dbus-x11
 
-      - name: Run Emulator (6GB RAM)
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          force-avd-creation: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -memory 6144
-          script: |
-            adb wait-for-device
+      - name: Initialize PipeWire and Run Pactl
+        run: |
+          # 1. Start a D-Bus session (required for PipeWire to talk to clients)
+          # We use dbus-run-session to wrap the entire execution
+          dbus-run-session -- bash << 'EOF'
+            # 2. Start PipeWire and WirePlumber in the background
+            /usr/bin/pipewire &
+            /usr/bin/pipewire-pulse &
+            /usr/bin/wireplumber &
             
-            echo "--- 1. DOWNLOAD DEBIAN CLOUD IMAGE ---"
-            # We download a small, specialized cloud-init debian image
-            curl -L -o debian.img https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.raw
+            # 3. Give services a moment to initialize the sockets
+            sleep 3
             
-            echo "--- 2. PREPARING VM STORAGE ---"
-            adb shell mkdir -p /data/local/tmp/linux_vm
-            adb push debian.img /data/local/tmp/linux_vm/debian.img
-            
-            echo "--- 3. DETECTING VIRTUALIZATION BINARY ---"
-            # Checking for 'vm' tool or 'crosvm'
-            adb shell which vm || echo "Standard 'vm' tool not found"
-            
-            echo "--- 4. ATTEMPTING TO BOOT VM ---"
-            # We use the 'vm' command which is the frontend for AVF
-            # This requires the virtualization_service to be active
-            # Note: This may fail if the emulator's pKVM doesn't support nested x86 virtualization
-            adb shell "vm run /data/local/tmp/linux_vm/debian.img" &
-            
-            echo "--- 5. MONITORING VM STATUS ---"
-            sleep 30
-            adb shell "vm list" || echo "No VMs currently running"
-            
-            echo "--- 6. RECOVERY & LOGS ---"
-            # If it fails, we check dmesg for KVM errors
-            adb shell "dmesg | grep -i kvm" | tail -n 20
-            
-            echo "--- 7. FINAL SCREENSHOT ---"
-            adb shell screencap -p /data/local/tmp/vm_test.png
-            adb pull /data/local/tmp/vm_test.png .
-
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: debian-boot-results
-          path: vm_test.png
-          
+            # 4. Run the info command
+            pactl info
+          EOF
