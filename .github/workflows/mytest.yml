@@ -1,19 +1,15 @@
-name: PipeWire Info Check
+name: run
 
 on: workflow_dispatch
 
 jobs:
-  check-audio-stack:
+  build:
     runs-on: ubuntu-latest
-  
-
+    container:
+      image: ubuntu:26.04
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install PipeWire and Utilities
+      - name: run
         run: |
-          sudo apt-get update
-          sudo apt-get install -y fastfetch && fastfetch
-
-      
+          apt-get update
+          apt-get install -y fastfetch
+          fastfetch
