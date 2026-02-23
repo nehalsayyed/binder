@@ -5,10 +5,7 @@ on: workflow_dispatch
 jobs:
   check-audio-stack:
     runs-on: ubuntu-latest
-    
-    # Setting your heap limit environment variable globally for the job
-    env:
-      DOTNET_GCHeapHardLimit: "1FFFFFFFF"
+  
 
     steps:
       - name: Checkout code
@@ -17,26 +14,6 @@ jobs:
       - name: Install PipeWire and Utilities
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            pipewire \
-            pipewire-pulse \
-            wireplumber \
-            pulseaudio-utils \
-            dbus-x11
+          sudo apt-get install -y fastfetch && fastfetch
 
-      - name: Initialize PipeWire and Run Pactl
-        run: |
-          # 1. Start a D-Bus session (required for PipeWire to talk to clients)
-          # We use dbus-run-session to wrap the entire execution
-          dbus-run-session -- bash << 'EOF'
-            # 2. Start PipeWire and WirePlumber in the background
-            /usr/bin/pipewire &
-            /usr/bin/pipewire-pulse &
-            /usr/bin/wireplumber &
-            
-            # 3. Give services a moment to initialize the sockets
-            sleep 3
-            
-            # 4. Run the info command
-            pactl info
-          EOF
+      
