@@ -13,3 +13,5 @@ jobs:
           apt-get update
           apt-get install -y fastfetch
           fastfetch
+          lspci
+          lscpu
