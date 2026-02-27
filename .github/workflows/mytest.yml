@@ -4,14 +4,10 @@ on: workflow_dispatch
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:26.04
+    runs-on: macos-latest
     steps:
       - name: run
         run: |
-          apt-get update
-          apt-get install -y fastfetch pciutils
+          brew install fastfetch
           fastfetch
-          lspci
-          lscpu
+          
