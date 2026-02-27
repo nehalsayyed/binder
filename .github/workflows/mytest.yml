@@ -4,10 +4,10 @@ on: workflow_dispatch
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: windows-latest
     steps:
       - name: run
         run: |
-          brew install fastfetch
+          choco install fastfetch -y
           fastfetch
           
