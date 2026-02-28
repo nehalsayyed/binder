@@ -5,16 +5,23 @@ on: workflow_dispatch
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: maven:3-openjdk-17
+    
     steps:
-      - name: run
-        run: |
-          apt update -y && apt install git -y
-          git clone https://github.com/HouariZegai/Calculator.git
-          cd Calculator 
-          mvn package 
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
 
+      - name: set android 
+        uses: android-actions/setup-android@v3
+
+      - name: Test
+        run: |
+          sdkmanager --list
+          gradle --version
+      
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
