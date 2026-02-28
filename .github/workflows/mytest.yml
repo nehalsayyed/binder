@@ -6,10 +6,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:26.04
+      image: maven:3-openjdk-17
     steps:
       - name: run
         run: |
-          apt update && apt install fastfetch -y
-          fastfetch
+          apt update -y && apt install git -y
+          git clone https://github.com/HouariZegai/Calculator.git
+          cd Calculator 
+          mvn package 
           
