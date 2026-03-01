@@ -1,40 +1,27 @@
-name: Manual Clone and NDK Build
+name: Gentoo Fastfetch Run
 
-on: workflow_dispatch
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
-  build-ndk:
+  gentoo-run:
     runs-on: ubuntu-latest
-    
+    container:
+      image: gentoo/stage3:latest
     
     steps:
-      - name: Manual Clone Moonlight
+      - name: Update Portage tree
+        # We use --sync to get the latest package definitions
+        run: emerge --sync --quiet
+
+      - name: Install Fastfetch
+        # Gentoo usually requires accepting keywords for newer tools
         run: |
-          git clone --depth 1 https://github.com/moonlight-stream/moonlight-android.git .
-          git submodule update --init --recursive
+          echo "app-misc/fastfetch ~amd64" >> /etc/portage/package.accept_keywords
+          emerge --ask n --verbose app-misc/fastfetch
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Android SDK & NDK
-        uses: android-actions/setup-android@v3
-        with:
-          # Moonlight usually requires a specific NDK version. 
-          # If it fails, check their 'build.gradle' for 'ndkVersion'
-          packages: 'ndk;25.2.9519653' 
-
-      - name: Build with Gradle
-        run: |
-          chmod +x gradlew
-          # assembleDebug builds the APK and triggers the NDK (CMake/ndk-build)
-          ./gradlew assembleDebug --no-daemon
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: moonlight-debug-apk
-          path: "app/build/outputs/apk/debug/*.apk"
-          
+      - name: Run Fastfetch
+        run: fastfetch
+        
