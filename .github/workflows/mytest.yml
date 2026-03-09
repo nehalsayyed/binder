@@ -5,13 +5,13 @@ on:
 
 jobs:
   run:
-    runs-on: macos-latest
+    runs-on: windows-latest
     
     
     steps:
       - name: Update 
         # We use --sync to get the latest package definitions
-        run: brew install fastfetch kotlin
+        run: choco install fastfetch kotlin -y
 
       
       - name: Run Fastfetch
