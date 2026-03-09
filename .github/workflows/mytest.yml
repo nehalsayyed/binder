@@ -11,11 +11,11 @@ jobs:
     steps:
       - name: Update 
         # We use --sync to get the latest package definitions
-        run: choco install fastfetch kotlin -y
+        run: choco install fastfetch kotlinc openjdk17 -y
 
       
       - name: Run Fastfetch
         run: | 
           fastfetch
-          gradle --version
+          kotlin --version
         
