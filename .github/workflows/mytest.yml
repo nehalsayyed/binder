@@ -1,27 +1,20 @@
-name: Gentoo Fastfetch Run
+name:  Run
 
 on:
-  push:
-    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
-  gentoo-run:
+  run:
     runs-on: ubuntu-latest
     container:
-      image: gentoo/stage3:latest
+      image: ubuntu:26.04
     
     steps:
-      - name: Update Portage tree
+      - name: Update 
         # We use --sync to get the latest package definitions
-        run: emerge --sync --quiet
+        run: apt update && apt install fastfetch -y 
 
-      - name: Install Fastfetch
-        # Gentoo usually requires accepting keywords for newer tools
-        run: |
-          echo "app-misc/fastfetch ~amd64" >> /etc/portage/package.accept_keywords
-          emerge --ask n --verbose app-misc/fastfetch
-
+      
       - name: Run Fastfetch
         run: fastfetch
         
