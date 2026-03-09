@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Update 
         # We use --sync to get the latest package definitions
-        run: brew install fastfetch -y 
+        run: brew install fastfetch 
 
       
       - name: Run Fastfetch
