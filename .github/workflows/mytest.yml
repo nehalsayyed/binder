@@ -17,5 +17,5 @@ jobs:
       - name: Run Fastfetch
         run: | 
           fastfetch
-          kotlin 
+          gradle --version
         
