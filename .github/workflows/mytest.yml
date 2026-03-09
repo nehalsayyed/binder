@@ -5,17 +5,18 @@ on:
 
 jobs:
   run:
-    runs-on: windows-latest
-    
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:26.04
     
     steps:
       - name: Update 
         # We use --sync to get the latest package definitions
-        run: choco install fastfetch kotlinc openjdk17 -y
+        run: apt update && apt install fastfetch -y
 
       
       - name: Run Fastfetch
         run: | 
           fastfetch
-          kotlin -version
+          
         
