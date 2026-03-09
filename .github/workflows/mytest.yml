@@ -5,14 +5,13 @@ on:
 
 jobs:
   run:
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:26.04
+    runs-on: macos-latest
+    
     
     steps:
       - name: Update 
         # We use --sync to get the latest package definitions
-        run: apt update && apt install fastfetch -y 
+        run: brew install fastfetch -y 
 
       
       - name: Run Fastfetch
