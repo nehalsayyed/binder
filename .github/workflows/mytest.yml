@@ -11,9 +11,12 @@ jobs:
     steps:
       - name: Update 
         # We use --sync to get the latest package definitions
-        run: brew install fastfetch 
+        run: brew install fastfetch kotlin
 
       
       - name: Run Fastfetch
-        run: fastfetch
+        run: | 
+          fastfetch
+          kotlin --version
+          kotlin 
         
