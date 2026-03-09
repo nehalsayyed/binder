@@ -6,17 +6,17 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    container:
-      image: ubuntu:26.04
+    
     
     steps:
       - name: Update 
         # We use --sync to get the latest package definitions
-        run: apt update && apt install fastfetch -y
+        run: sudo apt update && sudo apt install git -y
 
       
       - name: Run Fastfetch
         run: | 
-          fastfetch
-          
+          git clone https://github.com/meshtastic/firmware.git
+          cd firmware 
+          docker build -t firm .
         
