@@ -16,7 +16,7 @@ jobs:
       
       - name: Run Fastfetch
         run: | 
-          git clone https://github.com/meshtastic/firmware.git
-          cd firmware 
-          docker build -t firm .
+          git clone https://github.com/plantuml/plantuml.git
+          cd plantuml 
+          docker build -t pluml .
         
