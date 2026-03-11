@@ -11,12 +11,10 @@ jobs:
     steps:
       - name: Update 
         # We use --sync to get the latest package definitions
-        run: sudo apt update && sudo apt install git -y
+        run: sudo apt update && sudo apt install fastfetch -y
 
       
       - name: Run Fastfetch
         run: | 
-          git clone https://github.com/plantuml/plantuml.git
-          cd plantuml 
-          docker build -t pluml .
+          fastfetch
         
