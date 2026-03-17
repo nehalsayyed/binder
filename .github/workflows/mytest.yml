@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
     steps:
       - name: Clone llama.cpp
@@ -13,30 +13,28 @@ jobs:
           repository: ggerganov/llama.cpp
           fetch-depth: 1
 
-      - name: Install Vulkan SDK
-        run: |
-          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
-          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
-          sudo apt-get update
-          sudo apt-get install -y vulkan-sdk
+      - name: Install Vulkan SDK (Provides glslc)
+        uses: humbletim/setup-vulkan-sdk@v1.2.1
+        with:
+          vulkan-query-version: 1.3.268.0
+          vulkan-components: Vulkan-Headers, Glslang
 
-      - name: Set up NDK
+      - name: Set up Android NDK
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r26b
 
       - name: Build with CMake
         run: |
-          mkdir build
-          cd build
-          # We explicitly define the Vulkan paths to point into the NDK sysroot
+          mkdir build-android
+          cd build-android
+          # We force CMake to use the NDK's internal Vulkan lib and the SDK's headers
           cmake .. \
             -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-28 \
             -DGGML_VULKAN=ON \
-            -DVulkan_INCLUDE_DIR=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include \
-            -DVulkan_LIBRARY=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/28/libvulkan.so \
+            -DVULKAN_HEADERS_INSTALL_DIR=$VULKAN_SDK \
             -DCMAKE_BUILD_TYPE=Release
           
           make -j$(nproc)
@@ -44,8 +42,8 @@ jobs:
       - name: Upload Binaries
         uses: actions/upload-artifact@v4
         with:
-          name: llama-vulkan-mali-arm64
+          name: llama-vulkan-android
           path: |
-            build/bin/llama-cli
-            build/bin/llama-server
+            build-android/bin/llama-cli
+            build-android/bin/llama-server
             
