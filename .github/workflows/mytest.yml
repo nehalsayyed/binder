@@ -1,79 +1,50 @@
-name: Build llama.cpp Vulkan Android (NDK + Shaders)
+name: Build llama.cpp ARM64 (CPU Only)
 
 on:
-  workflow_dispatch:
+  push:
+  workflow_dispatch: # Allows manual trigger from the UI
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    env:
-      ANDROID_NDK_VERSION: r26d
-      ABI: arm64-v8a
-      API_LEVEL: 24
-
+  build-arm64:
+    # Native 2026 ARM64 runner (faster & more accurate for mobile builds)
+    runs-on: ubuntu-24.04-arm
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: Install dependencies
+      - name: Install Build Tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            git cmake ninja-build build-essential \
-            libvulkan-dev glslang-tools wget unzip
+          sudo apt update
+          sudo apt install -y build-essential cmake ninja-build
 
-      - name: Download NDK
+      - name: Configure CMake
+        # GGML_NATIVE=ON optimizes for the ARM architecture of the runner
+        # GGML_VULKAN=OFF ensures no GPU/Vulkan dependencies
         run: |
-          wget https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_VERSION}-linux.zip
-          unzip android-ndk-${ANDROID_NDK_VERSION}-linux.zip
-          echo "NDK_ROOT=$PWD/android-ndk-${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
-
-      - name: Clone llama.cpp
-        run: |
-          git clone https://github.com/ggerganov/llama.cpp.git
-          cd llama.cpp
-          git submodule update --init --recursive
-
-      # 🔥 Build shaders (IMPORTANT)
-      - name: Compile Vulkan shaders (SPIR-V)
-        run: |
-          cd llama.cpp
-          mkdir -p build-android/shaders
-          
-          find . -name "*.comp" | while read file; do
-            out="build-android/shaders/$(basename $file).spv"
-            echo "Compiling $file -> $out"
-            glslangValidator -V "$file" -o "$out"
-          done
-
-      - name: Configure
-        run: |
-          cd llama.cpp
-          cmake -S . -B build-android \
-            -G Ninja \
+          cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=$NDK_ROOT/build/cmake/android.toolchain.cmake \
-            -DANDROID_ABI=${ABI} \
-            -DANDROID_PLATFORM=android-${API_LEVEL} \
-            -DLLAMA_VULKAN=ON \
-            -DVulkan_INCLUDE_DIR=/usr/include \
-            -DVulkan_LIBRARY=/usr/lib/x86_64-linux-gnu/libvulkan.so \
-            -DLLAMA_BUILD_TESTS=OFF \
-            -DLLAMA_BUILD_EXAMPLES=OFF
+            -DGGML_NATIVE=ON \
+            -DGGML_VULKAN=OFF \
+            -DGGML_OPENMP=OFF
 
       - name: Build
-        run: |
-          cd llama.cpp
-          cmake --build build-android -j$(nproc)
+        run: cmake --build build --config Release -j $(nproc)
 
-      - name: Package
+      - name: Verify Binary
         run: |
-          mkdir -p output
-          cp -r llama.cpp/build-android/bin output/
-          cp -r llama.cpp/build-android/lib output/ || true
-          cp -r llama.cpp/build-android/shaders output/
+          ./build/bin/llama-cli --version
+          # Ensure no Vulkan or external GPU libs are linked
+          ldd ./build/bin/llama-cli
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Binaries
+        uses: actions/upload-artifact@v4
         with:
-          name: llama-android-vulkan-mali
-          path: output/
+          name: llama-arm64-cpu-only
+          path: |
+            build/bin/llama-cli
+            build/bin/llama-server
+            build/bin/llama-quantize
+            
