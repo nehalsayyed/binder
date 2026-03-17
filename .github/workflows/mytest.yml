@@ -1,56 +1,38 @@
-name: Full ARM64 CPU Build (Manual Clone)
+name: Generic ARM64 CPU Build
 
 on:
-  workflow_dispatch: # Manual trigger from Actions tab
+  workflow_dispatch:
 
 jobs:
-  build-arm64:
+  build:
     runs-on: ubuntu-24.04-arm
-
     steps:
-      - name: Manual Clone and Submodule Sync
+      - name: Manual Clone
         run: |
-          # Clone latest stable llama.cpp into current directory
           git clone --depth 1 https://github.com/ggml-org/llama.cpp .
-          # Sync all math engine submodules (critical for CPU performance)
           git submodule update --init --recursive
 
-      - name: Install Dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y build-essential cmake ninja-build
+      - name: Install Tools
+        run: sudo apt update && sudo apt install -y cmake ninja-build build-essential
 
-      - name: Configure and Build
+      - name: Build Generic
         run: |
           mkdir build && cd build
-          # -DGGML_VULKAN=OFF: No GPU/Vulkan dependencies
-          # -DGGML_NATIVE=ON: Optimizes for ARM NEON/ASIMD
-          # -DBUILD_SHARED_LIBS=ON: If you want separate .so files (useful for developers)
+          # -march=armv8-a makes the binary run on ANY arm64 phone
+          # -DGGML_NATIVE=OFF prevents the server from using its own high-end instructions
           cmake .. -G Ninja \
-            -DGGML_VULKAN=OFF \
-            -DGGML_NATIVE=ON \
             -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_SHARED_LIBS=OFF
+            -DGGML_VULKAN=OFF \
+            -DGGML_NATIVE=OFF \
+            -DCMAKE_C_FLAGS="-march=armv8-a" \
+            -DCMAKE_CXX_FLAGS="-march=armv8-a"
           
-          ninja
+          ninja llama-cli llama-server llama-quantize
 
-      - name: Prepare Output Directory
-        run: |
-          # Create a clean folder for all artifacts
-          mkdir -p output_dist
-          
-          # Copy all main binaries
-          cp build/bin/llama-* output_dist/
-          
-          # Copy any .so (shared object) files just in case they were generated
-          find build -name "*.so*" -exec cp {} output_dist/ \; || echo "No .so files found (Static Build)"
-          
-          # Add a version tag for your records
-          git rev-parse HEAD > output_dist/build_commit.txt
-
-      - name: Upload Full Distribution
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: llama-arm64-full-cpu
-          path: output_dist/
-          
+          name: llama-generic-arm64
+          path: |
+            build/
+            
