@@ -4,63 +4,71 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-android:
+  build-android-vulkan:
     runs-on: ubuntu-latest
 
     env:
       ANDROID_NDK_VERSION: r26d
       ABI: arm64-v8a
-      API_LEVEL: 24
+      API_LEVEL: 28 # Recommended baseline for Vulkan 1.1
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: Install dependencies
+      - name: Install Host Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             git cmake ninja-build build-essential \
-            wget unzip
+            wget unzip libvulkan-dev shaderc
 
       - name: Download Android NDK
         run: |
-          wget https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_VERSION}-linux.zip
-          unzip android-ndk-${ANDROID_NDK_VERSION}-linux.zip
-          echo "NDK_ROOT=$PWD/android-ndk-${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
+          wget -q https://dl.google.com/android/repository/android-ndk-${{ env.ANDROID_NDK_VERSION }}-linux.zip
+          unzip -q android-ndk-${{ env.ANDROID_NDK_VERSION }}-linux.zip
+          echo "NDK_ROOT=$PWD/android-ndk-${{ env.ANDROID_NDK_VERSION }}" >> $GITHUB_ENV
 
-      - name: Clone llama.cpp
+      # CRITICAL STEP: Build the shader generator for the Host machine
+      - name: Build Host Shader Generator
         run: |
-          git clone https://github.com/ggerganov/llama.cpp.git
-          cd llama.cpp
-          git submodule update --init --recursive
+          cmake -B build-host -DGGML_VULKAN=ON
+          cmake --build build-host --target vulkan-shaders-gen
+          echo "VULKAN_GEN_DIR=$PWD/build-host/bin" >> $GITHUB_ENV
 
-      - name: Configure build (Vulkan + NDK)
+      - name: Configure Android Build
         run: |
-          cd llama.cpp
+          # Add the host bin directory to path so the Android build finds vulkan-shaders-gen
+          export PATH="$VULKAN_GEN_DIR:$PATH"
+          
           cmake -S . -B build-android \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=$NDK_ROOT/build/cmake/android.toolchain.cmake \
-            -DANDROID_ABI=${ABI} \
-            -DANDROID_PLATFORM=android-${API_LEVEL} \
-            -DLLAMA_VULKAN=ON \
+            -DCMAKE_TOOLCHAIN_FILE=${{ env.NDK_ROOT }}/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=${{ env.ABI }} \
+            -DANDROID_PLATFORM=android-${{ env.API_LEVEL }} \
+            -DGGML_VULKAN=ON \
+            -DGGML_VULKAN_CHECK_RESULTS=OFF \
             -DLLAMA_BUILD_TESTS=OFF \
             -DLLAMA_BUILD_EXAMPLES=ON
 
-      - name: Build
+      - name: Build Binaries
         run: |
-          cd llama.cpp
           cmake --build build-android -j$(nproc)
 
       - name: Package artifacts
         run: |
           mkdir -p output
-          cp -r llama.cpp/build-android/bin output/
-          cp -r llama.cpp/build-android/lib output/ || true
+          cp build-android/bin/llama-cli output/
+          cp build-android/bin/llama-server output/
+          # Optional: add libraries if needed
+          find build-android -name "*.so" -exec cp {} output/ \;
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: llama-android-vulkan
+          name: llama-android-vulkan-arm64
           path: output/
+          
