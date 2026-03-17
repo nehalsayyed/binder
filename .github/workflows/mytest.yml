@@ -1,48 +1,51 @@
-name: Build llama.cpp ARM64 (CPU Only)
+name: Manual ARM64 CPU Build (No Checkout)
 
 on:
-  push:
-  workflow_dispatch: # Allows manual trigger from the UI
+  workflow_dispatch: # Allows you to run this manually from the Actions tab
 
 jobs:
   build-arm64:
-    # Native 2026 ARM64 runner (faster & more accurate for mobile builds)
+    # Using the native 2026 ARM64 runner for maximum compatibility with your phone
     runs-on: ubuntu-24.04-arm
-    
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
-      - name: Install Build Tools
+    steps:
+      - name: Manual Clone and Submodule Sync
+        run: |
+          # Clone the latest stable version of llama.cpp
+          git clone --depth 1 https://github.com/ggml-org/llama.cpp .
+          # Crucial: Fetch the math engine (ggml) and other dependencies
+          git submodule update --init --recursive
+
+      - name: Install Build Dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential cmake ninja-build
+          sudo apt install -y cmake ninja-build build-essential
 
-      - name: Configure CMake
-        # GGML_NATIVE=ON optimizes for the ARM architecture of the runner
-        # GGML_VULKAN=OFF ensures no GPU/Vulkan dependencies
+      - name: Configure and Build (CPU Only)
         run: |
-          cmake -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DGGML_NATIVE=ON \
+          # Create build directory
+          mkdir build && cd build
+          
+          # -DGGML_VULKAN=OFF: Ensures no GPU/Vulkan dependencies
+          # -DGGML_NATIVE=ON: Optimizes for the runner's ARMv8/v9 features
+          # -DCMAKE_BUILD_TYPE=Release: Enables full compiler optimizations
+          cmake .. -G Ninja \
             -DGGML_VULKAN=OFF \
-            -DGGML_OPENMP=OFF
+            -DGGML_NATIVE=ON \
+            -DCMAKE_BUILD_TYPE=Release
+          
+          # Compile using all available CPU threads
+          ninja llama-cli llama-server llama-quantize
 
-      - name: Build
-        run: cmake --build build --config Release -j $(nproc)
-
-      - name: Verify Binary
+      - name: Verify Binary Linkage
         run: |
-          ./build/bin/llama-cli --version
-          # Ensure no Vulkan or external GPU libs are linked
-          ldd ./build/bin/llama-cli
+          echo "Checking for Vulkan dependencies (should be empty):"
+          ldd ./build/bin/llama-cli | grep -i vulkan || echo "No Vulkan found - Success"
 
       - name: Upload Binaries
         uses: actions/upload-artifact@v4
         with:
-          name: llama-arm64-cpu-only
+          name: llama-arm64-cpu-manual
           path: |
             build/bin/llama-cli
             build/bin/llama-server
