@@ -1,53 +1,56 @@
-name: Manual ARM64 CPU Build (No Checkout)
+name: Full ARM64 CPU Build (Manual Clone)
 
 on:
-  workflow_dispatch: # Allows you to run this manually from the Actions tab
+  workflow_dispatch: # Manual trigger from Actions tab
 
 jobs:
   build-arm64:
-    # Using the native 2026 ARM64 runner for maximum compatibility with your phone
     runs-on: ubuntu-24.04-arm
 
     steps:
       - name: Manual Clone and Submodule Sync
         run: |
-          # Clone the latest stable version of llama.cpp
+          # Clone latest stable llama.cpp into current directory
           git clone --depth 1 https://github.com/ggml-org/llama.cpp .
-          # Crucial: Fetch the math engine (ggml) and other dependencies
+          # Sync all math engine submodules (critical for CPU performance)
           git submodule update --init --recursive
 
-      - name: Install Build Dependencies
+      - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y cmake ninja-build build-essential
+          sudo apt install -y build-essential cmake ninja-build
 
-      - name: Configure and Build (CPU Only)
+      - name: Configure and Build
         run: |
-          # Create build directory
           mkdir build && cd build
-          
-          # -DGGML_VULKAN=OFF: Ensures no GPU/Vulkan dependencies
-          # -DGGML_NATIVE=ON: Optimizes for the runner's ARMv8/v9 features
-          # -DCMAKE_BUILD_TYPE=Release: Enables full compiler optimizations
+          # -DGGML_VULKAN=OFF: No GPU/Vulkan dependencies
+          # -DGGML_NATIVE=ON: Optimizes for ARM NEON/ASIMD
+          # -DBUILD_SHARED_LIBS=ON: If you want separate .so files (useful for developers)
           cmake .. -G Ninja \
             -DGGML_VULKAN=OFF \
             -DGGML_NATIVE=ON \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF
           
-          # Compile using all available CPU threads
-          ninja llama-cli llama-server llama-quantize
+          ninja
 
-      - name: Verify Binary Linkage
+      - name: Prepare Output Directory
         run: |
-          echo "Checking for Vulkan dependencies (should be empty):"
-          ldd ./build/bin/llama-cli | grep -i vulkan || echo "No Vulkan found - Success"
+          # Create a clean folder for all artifacts
+          mkdir -p output_dist
+          
+          # Copy all main binaries
+          cp build/bin/llama-* output_dist/
+          
+          # Copy any .so (shared object) files just in case they were generated
+          find build -name "*.so*" -exec cp {} output_dist/ \; || echo "No .so files found (Static Build)"
+          
+          # Add a version tag for your records
+          git rev-parse HEAD > output_dist/build_commit.txt
 
-      - name: Upload Binaries
+      - name: Upload Full Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: llama-arm64-cpu-manual
-          path: |
-            build/bin/llama-cli
-            build/bin/llama-server
-            build/bin/llama-quantize
-            
+          name: llama-arm64-full-cpu
+          path: output_dist/
+          
