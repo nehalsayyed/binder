@@ -10,7 +10,7 @@ jobs:
     env:
       ANDROID_NDK_VERSION: r26d
       ABI: arm64-v8a
-      API_LEVEL: 28 # Recommended baseline for Vulkan 1.1
+      API_LEVEL: 28
 
     steps:
       - name: Checkout repo
@@ -21,9 +21,10 @@ jobs:
       - name: Install Host Dependencies
         run: |
           sudo apt-get update
+          # We use 'glslc' instead of 'shaderc' for the package name
           sudo apt-get install -y \
             git cmake ninja-build build-essential \
-            wget unzip libvulkan-dev shaderc
+            wget unzip libvulkan-dev glslc
 
       - name: Download Android NDK
         run: |
@@ -31,7 +32,7 @@ jobs:
           unzip -q android-ndk-${{ env.ANDROID_NDK_VERSION }}-linux.zip
           echo "NDK_ROOT=$PWD/android-ndk-${{ env.ANDROID_NDK_VERSION }}" >> $GITHUB_ENV
 
-      # CRITICAL STEP: Build the shader generator for the Host machine
+      # FIX: Build the host tool first so it can generate shaders for the ARM build
       - name: Build Host Shader Generator
         run: |
           cmake -B build-host -DGGML_VULKAN=ON
@@ -40,7 +41,6 @@ jobs:
 
       - name: Configure Android Build
         run: |
-          # Add the host bin directory to path so the Android build finds vulkan-shaders-gen
           export PATH="$VULKAN_GEN_DIR:$PATH"
           
           cmake -S . -B build-android \
@@ -63,11 +63,11 @@ jobs:
           mkdir -p output
           cp build-android/bin/llama-cli output/
           cp build-android/bin/llama-server output/
-          # Optional: add libraries if needed
+          # Copy any required shared libraries
           find build-android -name "*.so" -exec cp {} output/ \;
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: upload-artifact@v4
         with:
           name: llama-android-vulkan-arm64
           path: output/
