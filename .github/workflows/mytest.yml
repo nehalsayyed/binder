@@ -1,38 +1,47 @@
-name: Generic ARM64 CPU Build
+name: Build Arti Android APK
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Manual Clone
-        run: |
-          git clone --depth 1 https://github.com/ggml-org/llama.cpp .
-          git submodule update --init --recursive
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          repository: 'guardianproject/tormobile/arti-mobile-ex'
 
-      - name: Install Tools
-        run: sudo apt update && sudo apt install -y cmake ninja-build build-essential
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-      - name: Build Generic
-        run: |
-          mkdir build && cd build
-          # -march=armv8-a makes the binary run on ANY arm64 phone
-          # -DGGML_NATIVE=OFF prevents the server from using its own high-end instructions
-          cmake .. -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DGGML_VULKAN=OFF \
-            -DGGML_NATIVE=OFF \
-            -DCMAKE_C_FLAGS="-march=armv8-a" \
-            -DCMAKE_CXX_FLAGS="-march=armv8-a"
-          
-          ninja llama-cli llama-server llama-quantize
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: armv7-linux-androideabi, aarch64-linux-android, i686-linux-android, x86_64-linux-android
 
-      - name: Upload Artifacts
+      - name: Set up Android NDK
+        uses: nandroid/setup-ndk@v3
+        with:
+          ndk-version: r25c # Matches common Rust-Android build requirements
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+
+      - name: Build with Gradle
+        run: ./gradlew assembleDebug
+        env:
+          # Required for Rust-Android-Gradle plugin to find the NDK
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: llama-generic-arm64
-          path: |
-            build/
-            
+          name: arti-mobile-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          
