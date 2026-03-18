@@ -1,4 +1,4 @@
-name: Build Arti Android APK
+name: Build Tor Arti APK
 
 on:
   workflow_dispatch:
@@ -8,26 +8,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          repository: 'guardianproject/tormobile/arti-mobile-ex'
+      # Step 1: Manual Clone from GitLab
+      - name: Clone GitLab Repository
+        run: |
+          git clone https://gitlab.com/guardianproject/tormobile/arti-mobile-ex.git .
+          git submodule update --init --recursive
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Install Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: armv7-linux-androideabi, aarch64-linux-android, i686-linux-android, x86_64-linux-android
 
-      - name: Set up Android SDK & NDK
-        uses: android-actions/setup-android@v3
-
-      # GitHub Ubuntu runners have NDKs at $ANDROID_SDK_ROOT/ndk-bundle or $ANDROID_SDK_ROOT/ndk/<version>
       - name: Install cargo-ndk
         run: cargo install cargo-ndk
 
@@ -36,12 +34,14 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
         env:
-          # Pointing to the pre-installed NDK on the runner
-          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/25.2.9519653
+          # Using the NDK version typically pre-installed on GitHub Runners
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/25.2.9519653
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: arti-mobile-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          
+          path: |
+             app/build/outputs/apk/debug/*.apk
+             */build/outputs/apk/debug/*.apk
+             
