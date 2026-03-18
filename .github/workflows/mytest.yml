@@ -1,7 +1,7 @@
 name: Build Arti Android APK
 
 on:
-  workflow_dispatch: # Allows manual triggering
+  workflow_dispatch:
 
 jobs:
   build:
@@ -24,24 +24,24 @@ jobs:
         with:
           targets: armv7-linux-androideabi, aarch64-linux-android, i686-linux-android, x86_64-linux-android
 
-      - name: Set up Android NDK
-        uses: nandroid/setup-ndk@v3
-        with:
-          ndk-version: r25c # Matches common Rust-Android build requirements
+      - name: Set up Android SDK & NDK
+        uses: android-actions/setup-android@v3
 
+      # GitHub Ubuntu runners have NDKs at $ANDROID_SDK_ROOT/ndk-bundle or $ANDROID_SDK_ROOT/ndk/<version>
       - name: Install cargo-ndk
         run: cargo install cargo-ndk
 
       - name: Build with Gradle
-        run: ./gradlew assembleDebug
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
         env:
-          # Required for Rust-Android-Gradle plugin to find the NDK
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          # Pointing to the pre-installed NDK on the runner
+          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/25.2.9519653
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: arti-mobile-debug-apk
           path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
           
