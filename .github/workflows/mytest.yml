@@ -1,44 +1,50 @@
-name: "Capture System Info Video"
-
+name: Capture Windows System Info
 on: 
-  workflow_dispatch: # Allows manual trigger from the Actions tab
+  workflow_dispatch:
 
 jobs:
-  record-system:
+  record-and-report:
     runs-on: windows-latest
-    
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Start Background Recording
-        # 'start' runs ffmpeg in a separate process so the workflow can continue
-        # gdigrab captures the desktop at 30fps
+      - name: Start Recording (Background)
+        # We use a 5-second delay to ensure the GDI desktop session is initialized
         run: |
-          start ffmpeg -f gdigrab -framerate 30 -i desktop -vcodec libx264 -pix_fmt yuv420p -preset ultrafast capture.mp4
-        shell: cmd
-
-      - name: Run System Information Tool
-        run: |
-          echo "Generating System Information..."
-          # Generates a text report (msinfo32 usually pops a UI, systeminfo is CLI)
-          systeminfo
-          # Optional: Open msinfo32 for 10 seconds to ensure it's in the video
-          start msinfo32
-          Start-Sleep -Seconds 15
+          Start-Sleep -Seconds 5
+          $ffmpegArgs = "-f gdigrab -framerate 30 -i desktop -vcodec libx264 -pix_fmt yuv420p -preset ultrafast -y capture.mp4"
+          Start-Process ffmpeg -ArgumentList $ffmpegArgs -NoNewWindow
+          Start-Sleep -Seconds 2
+          Get-Process ffmpeg # Verify it started
         shell: powershell
 
-      - name: Stop Recording
-        # Gracefully stop ffmpeg so the MP4 file is finalized correctly
+      - name: Run System Information Tools
         run: |
-          taskkill /IM ffmpeg.exe /T /F
+          # 1. Run CLI tool (fast)
+          systeminfo
+          
+          # 2. Open GUI tool (visual)
+          start msinfo32
+          
+          # Wait so the video actually captures the window
+          Start-Sleep -Seconds 20 
+        shell: powershell
+
+      - name: Stop Recording Gracefully
+        # We kill the process tree (/T). 
+        # Removing /F (Force) allows FFmpeg to finish the file safely.
+        run: |
+          taskkill /IM ffmpeg.exe /T
+          Start-Sleep -Seconds 5
         shell: cmd
         if: always()
 
-      - name: Upload Video Artifact
+      - name: Upload Video and Logs
         uses: actions/upload-artifact@v4
         with:
-          name: windows-screen-capture
-          path: capture.mp4
-          retention-days: 5
-          
+          name: windows-system-capture
+          path: |
+            capture.mp4
+          if-no-files-found: error
+          retention-days: 3
