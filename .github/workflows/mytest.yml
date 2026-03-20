@@ -1,35 +1,54 @@
-name: Build Compose Debug APK
+name: Build PeaZip Windows
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Manual trigger
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
-      # 1. Setup Java first (without caching)
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      # 1. Checkout the PeaZip source code
+      - name: Checkout PeaZip
+        uses: actions/checkout@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          repository: peazip/PeaZip
+          fetch-depth: 1
 
-      # 2. Clone the repo into the current directory
-      - name: Clone KitchenTimer Repository
+      # 2. Install Lazarus and Free Pascal
+      - name: Install Lazarus
+        uses: gcarreno/setup-lazarus@v3
+        with:
+          lazarus-version: "stable"
+          with-cache: true
+
+      # 3. Register required Lazarus Packages (.lpk)
+      # These must be added to the environment before compiling the main projects
+      - name: Install Dependencies
         run: |
-          git clone https://github.com/GuilhE/KitchenTimer.git .
-          chmod +x gradlew
+          lazbuild --add-package dev/metadarkstyle/metadarkstyle.lpk
+          lazbuild --add-package dev/dragdropfilesdll/DragDropLazarus.lpk
 
-      # 3. Run the build
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
+      # 4. Build the Project Components
+      - name: Build PeaZip Components
+        run: |
+          # Build the drag-and-drop helper DLL
+          lazbuild dev/dragdropfilesdll/dragdropfilesdll.lpi
+          
+          # Build the main GUI (Peach)
+          lazbuild project_peach.lpi
+          
+          # Build the backend engine (Pea)
+          lazbuild project_pea.lpi
 
-      # 4. Upload the generated APK
-      - name: Upload APK Artifact
+      # 5. Collect and Upload Binaries
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: kitchen-timer-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-          
+          name: PeaZip-Windows-Build
+          path: |
+            peazip.exe
+            pea.exe
+            dev/dragdropfilesdll/dragdropfilesdll.dll
+          retention-days: 5
           
