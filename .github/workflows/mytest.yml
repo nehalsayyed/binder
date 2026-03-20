@@ -8,7 +8,6 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      # 1. Checkout into the ROOT directory
       - name: Checkout ImageGlass
         uses: actions/checkout@v4
         with:
@@ -16,24 +15,33 @@ jobs:
           fetch-depth: 1
           path: '.' 
 
-      # 2. Install .NET 8 (Required for ImageGlass)
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
+      # 1. Setup the Full MSBuild (instead of just dotnet)
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
 
-      # 3. Restore and Build using the .slnx file
-      # 'dotnet build' automatically performs a nuget restore
+      # 2. Setup NuGet for the old-style restoration
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      # 3. Use NuGet to restore the .slnx (or .sln if it exists)
+      # If .slnx fails, try restoring the specific project files
+      - name: Restore Packages
+        run: nuget restore Source/ImageGlass.slnx
+
+      # 4. Build using the FULL MSBuild 
+      # This version supports "ResolveComReference"
       - name: Build ImageGlass
         run: |
-          dotnet build Source/ImageGlass.slnx --configuration Release
+          msbuild Source/ImageGlass.slnx `
+            -p:Configuration=Release `
+            -p:Platform="Any CPU" `
+            -p:RuntimeIdentifier=win-x64 `
+            -m
 
-      # 4. Upload the Build Artifacts
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ImageGlass-Binary
-          # The output typically lands in the main project's bin folder
           path: Source/ImageGlass/bin/Release/net8.0-windows/
           retention-days: 5
           
