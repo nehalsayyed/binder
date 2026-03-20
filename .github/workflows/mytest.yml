@@ -14,32 +14,26 @@ jobs:
         with:
           repository: d2phap/ImageGlass
           fetch-depth: 1
-          path: '.' # This ensures 'Source' is at the root level
+          path: '.' 
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+      # 2. Install .NET 8 (Required for ImageGlass)
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
 
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
-
-      # 2. Restore NuGet Packages
-      - name: Restore NuGet Packages
-        run: nuget restore Source/ImageGlass.sln
-
-      # 3. Build the Solution
-      - name: Build ImageGlass (Release)
+      # 3. Restore and Build using the .slnx file
+      # 'dotnet build' automatically performs a nuget restore
+      - name: Build ImageGlass
         run: |
-          msbuild Source/ImageGlass.sln `
-            -p:Configuration=Release `
-            -p:Platform="Any CPU" `
-            -m
+          dotnet build Source/ImageGlass.slnx --configuration Release
 
       # 4. Upload the Build Artifacts
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ImageGlass-Binary
-          # Using a wildcard to find the output regardless of the .NET version
-          path: Source/ImageGlass/bin/Release/**
+          # The output typically lands in the main project's bin folder
+          path: Source/ImageGlass/bin/Release/net8.0-windows/
           retention-days: 5
           
