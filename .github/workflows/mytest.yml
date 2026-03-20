@@ -1,4 +1,4 @@
-name: Build PeaZip Windows
+name: Build ImageGlass
 
 on:
   workflow_dispatch: # Manual trigger
@@ -8,47 +8,39 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      # 1. Checkout the PeaZip source code
-      - name: Checkout PeaZip
+      # 1. Checkout the ImageGlass source code
+      - name: Checkout ImageGlass
         uses: actions/checkout@v4
         with:
-          repository: peazip/PeaZip
+          repository: d2phap/ImageGlass
           fetch-depth: 1
 
-      # 2. Install Lazarus and Free Pascal
-      - name: Install Lazarus
-        uses: gcarreno/setup-lazarus@v3
-        with:
-          lazarus-version: "stable"
-          with-cache: true
+      # 2. Setup MSBuild
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
 
-      # 3. Register required Lazarus Packages (.lpk)
-      # These must be added to the environment before compiling the main projects
-      - name: Install Dependencies
+      # 3. Setup NuGet
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      # 4. Restore NuGet Packages
+      - name: Restore NuGet Packages
+        run: nuget restore Source/ImageGlass.sln
+
+      # 5. Build the Solution
+      - name: Build ImageGlass (Release)
         run: |
-          lazbuild --add-package dev/metadarkstyle/metadarkstyle.lpk
-          lazbuild --add-package dev/dragdropfilesdll/DragDropLazarus.lpk
+          msbuild Source/ImageGlass.sln `
+            -p:Configuration=Release `
+            -p:Platform="Any CPU" `
+            -m
 
-      # 4. Build the Project Components
-      - name: Build PeaZip Components
-        run: |
-          # Build the drag-and-drop helper DLL
-          lazbuild dev/dragdropfilesdll/dragdropfilesdll.lpi
-          
-          # Build the main GUI (Peach)
-          lazbuild project_peach.lpi
-          
-          # Build the backend engine (Pea)
-          lazbuild project_pea.lpi
-
-      # 5. Collect and Upload Binaries
-      - name: Upload Artifacts
+      # 6. Upload the Build Artifacts
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: PeaZip-Windows-Build
-          path: |
-            peazip.exe
-            pea.exe
-            dev/dragdropfilesdll/dragdropfilesdll.dll
+          name: ImageGlass-Binary
+          # ImageGlass outputs to Source/ImageGlass/bin/Release/net8.0-windows/
+          path: Source/ImageGlass/bin/Release/
           retention-days: 5
           
