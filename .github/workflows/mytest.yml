@@ -1,54 +1,36 @@
-name: Build Apache Solr
+name: Build Solr
 
 on:
-  workflow_dispatch:
-    inputs:
-      gradle_tasks:
-        description: 'Gradle tasks to run'
-        required: true
-        default: 'assemble'
-      additional_args:
-        description: 'Extra arguments (e.g. -x test)'
-        required: false
-        default: ''
+  workflow_dispatch: # Allows you to run it manually from the Actions tab
 
 jobs:
-  solr-build:
+  build-job:
     runs-on: ubuntu-latest
-    
     steps:
-      # STEP 1: Check out the repository. 
-      # This MUST come first so the subsequent steps can see the build files.
+      # STEP 1: MUST BE FIRST. This downloads your code into the runner.
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # STEP 2: Set up the Java environment.
-      # Solr 9.x+ typically targets Java 17, but the main branch often moves to 21.
-      - name: Set up JDK
+      # STEP 2: Setup Java. Now that the code is there, the cache will find the gradle files.
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17' 
+          java-version: '21'
           distribution: 'temurin'
           cache: 'gradle'
 
-      # STEP 3: Ensure the Gradle wrapper is executable.
-      # Sometimes git permissions on Windows-based forks can mess this up.
-      - name: Grant Execute Permission for Gradlew
+      # STEP 3: Fix permissions (Standard requirement for Linux runners)
+      - name: Make Gradlew Executable
         run: chmod +x gradlew
 
-      # STEP 4: Run the Gradle build.
-      # We use 'assemble' to create the distribution without running every unit test.
-      - name: Build Solr
-        run: ./gradlew ${{ github.event.inputs.gradle_tasks }} ${{ github.event.inputs.additional_args }}
+      # STEP 4: Run the actual build
+      - name: Build with Gradle
+        run: ./gradlew assemble
 
-      # STEP 5: Upload the resulting binaries.
-      # This allows you to download the Solr .tgz/zip from the 'Summary' page.
-      - name: Upload Build Artifacts
+      # STEP 5: Save the results
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: solr-dist
-          path: |
-            solr/packaging/build/distributions/*.tgz
-            solr/packaging/build/distributions/*.zip
-          if-no-files-found: warn
+          path: solr/packaging/build/distributions/
           
