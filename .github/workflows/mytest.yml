@@ -1,17 +1,20 @@
 name: Build Solr
 
 on:
-  workflow_dispatch: # Allows you to run it manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
-  build-job:
+  build:
     runs-on: ubuntu-latest
     steps:
-      # STEP 1: MUST BE FIRST. This downloads your code into the runner.
+      # CRITICAL: This MUST be the very first step. 
+      # It pulls your code so the next step actually has files to look at.
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # STEP 2: Setup Java. Now that the code is there, the cache will find the gradle files.
+      # Now that files exist, setup-java won't crash on the 'cache' instruction.
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -19,16 +22,14 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      # STEP 3: Fix permissions (Standard requirement for Linux runners)
-      - name: Make Gradlew Executable
+      - name: Make Gradle Executable
         run: chmod +x gradlew
 
-      # STEP 4: Run the actual build
-      - name: Build with Gradle
-        run: ./gradlew assemble
+      # Using --no-daemon is more stable in CI environments
+      - name: Build Solr
+        run: ./gradlew assemble --no-daemon
 
-      # STEP 5: Save the results
-      - name: Upload Artifacts
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: solr-dist
