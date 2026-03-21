@@ -1,38 +1,54 @@
-name: Build Solr
+name: Build Apache Solr
 
 on:
   workflow_dispatch:
     inputs:
-      build_args:
-        description: 'Additional Gradle arguments (e.g., -PskipTests)'
+      gradle_tasks:
+        description: 'Gradle tasks to run'
+        required: true
+        default: 'assemble'
+      additional_args:
+        description: 'Extra arguments (e.g. -x test)'
         required: false
         default: ''
 
 jobs:
-  build:
+  solr-build:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout Code
+      # STEP 1: Check out the repository. 
+      # This MUST come first so the subsequent steps can see the build files.
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      # STEP 2: Set up the Java environment.
+      # Solr 9.x+ typically targets Java 17, but the main branch often moves to 21.
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '17' 
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Make Gradle Wrapper Executable
+      # STEP 3: Ensure the Gradle wrapper is executable.
+      # Sometimes git permissions on Windows-based forks can mess this up.
+      - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
-      - name: Build with Gradle
-        # Running 'assemble' builds the artifacts without running full tests
-        run: ./gradlew assemble ${{ github.event.inputs.build_args }}
+      # STEP 4: Run the Gradle build.
+      # We use 'assemble' to create the distribution without running every unit test.
+      - name: Build Solr
+        run: ./gradlew ${{ github.event.inputs.gradle_tasks }} ${{ github.event.inputs.additional_args }}
 
-      - name: Archive Build Artifacts
+      # STEP 5: Upload the resulting binaries.
+      # This allows you to download the Solr .tgz/zip from the 'Summary' page.
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: solr-dist
-          path: solr/packaging/build/distributions/
+          path: |
+            solr/packaging/build/distributions/*.tgz
+            solr/packaging/build/distributions/*.zip
+          if-no-files-found: warn
           
