@@ -1,47 +1,38 @@
-name: Build ImageGlass
+name: Build Solr
 
 on:
   workflow_dispatch:
+    inputs:
+      build_args:
+        description: 'Additional Gradle arguments (e.g., -PskipTests)'
+        required: false
+        default: ''
 
 jobs:
   build:
-    runs-on: windows-latest
-
+    runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout ImageGlass
+      - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          repository: d2phap/ImageGlass
-          fetch-depth: 1
-          path: '.' 
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
 
-      # 1. Setup the Full MSBuild (instead of just dotnet)
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x gradlew
 
-      # 2. Setup NuGet for the old-style restoration
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
+      - name: Build with Gradle
+        # Running 'assemble' builds the artifacts without running full tests
+        run: ./gradlew assemble ${{ github.event.inputs.build_args }}
 
-      # 3. Use NuGet to restore the .slnx (or .sln if it exists)
-      # If .slnx fails, try restoring the specific project files
-      - name: Restore Packages
-        run: nuget restore Source/ImageGlass.slnx
-
-      # 4. Build using the FULL MSBuild 
-      # This version supports "ResolveComReference"
-      - name: Build ImageGlass
-        run: |
-          msbuild Source/ImageGlass.slnx `
-            -p:Configuration=Release `
-            -p:Platform="Any CPU" `
-            -p:RuntimeIdentifier=win-x64 `
-            -m
-
-      - name: Upload Build Artifacts
+      - name: Archive Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ImageGlass-Binary
-          path: Source/ImageGlass/bin/Release/net8.0-windows/
-          retention-days: 5
+          name: solr-dist
+          path: solr/packaging/build/distributions/
           
