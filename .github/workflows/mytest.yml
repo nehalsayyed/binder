@@ -14,19 +14,26 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '11'
+          java-version: '11' # If this still fails, try changing '11' to '8'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '2.10.5'
+          cache: true
+
+      - name: Pre-build Fix
+        run: |
+          touch android/local.properties
+          flutter doctor -v
 
       - name: Build
         run: |
           flutter pub get
-          flutter build apk --release
+          flutter build apk --release --verbose
 
       - name: Upload
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: app-release
