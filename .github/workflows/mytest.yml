@@ -1,11 +1,34 @@
-name: Build Solr
+name: Manual Build APK
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     steps:
-      - name: run
-        run: sudo apt update && sudo apt install neofetch -y && neofetch
+      - name: Manual Clone
+        run: git clone https://github.com/4seer/openflutterecommerceapp.git .
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '2.10.5'
+
+      - name: Build
+        run: |
+          flutter pub get
+          flutter build apk --release
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: build/app/outputs/flutter-apk/app-release.apk
+          
