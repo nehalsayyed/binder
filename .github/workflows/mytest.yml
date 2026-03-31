@@ -5,9 +5,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:26.04
+    runs-on: windows-latest
+    
     steps:
       - name: Running
-        run: apt update && apt install fastfetch -y && fastfetch
+        run: |
+             choco install fastfetch -y 
+             fastfetch
