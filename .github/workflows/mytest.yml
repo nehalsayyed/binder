@@ -5,10 +5,12 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:25.04
     
     steps:
       - name: Running
         run: |
-             brew install fastfetch 
+             apt update && apt install fastfetch -y 
              fastfetch
