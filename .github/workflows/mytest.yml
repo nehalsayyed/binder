@@ -5,10 +5,10 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: macos-latest-large
     
     steps:
       - name: Running
         run: |
-             choco install fastfetch -y 
+             brew install fastfetch 
              fastfetch
