@@ -1,44 +1,42 @@
 name: Build Flutter ARM64 Offline
 on: 
-  workflow_dispatch: # Allows manual trigger
+  workflow_dispatch: 
 
 jobs:
   build:
-    # Uses GitHub's newer ARM64 Linux runners
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout Flutter
         run: |
           git clone https://github.com/flutter/flutter.git -b stable
           cd flutter
-          # Force the internal dart to initialize
           ./bin/flutter --version
 
       - name: Precache ARM64 Artifacts
         run: |
           cd flutter
-          # This downloads the Linux-ARM64 engine and tools into the SDK
+          # Automatically grabs ARM64 artifacts because the runner is ARM64
           ./bin/flutter precache --linux --no-android --no-ios --universal
 
       - name: Clean unnecessary files
         run: |
-          # Remove git history and caches to save space
           rm -rf flutter/.git
           rm -rf flutter/bin/cache/artifacts/gradle_wrapper
 
       - name: Compress (High Compression XZ)
         run: |
-          # -J uses xz compression (highest ratio)
-          # -9 is the extreme compression level
-          tar -cJf flutter-arm64-stable.tar.xz flutter/
+          # Use -T0 to use all CPU cores for faster compression
+          tar -cf - flutter/ | xz -9 -T0 > flutter-arm64-stable.tar.xz
 
       - name: Generate Checksum
         run: sha256sum flutter-arm64-stable.tar.xz > checksum.txt
 
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: "flutter-arm64-latest"
-          files: |
+          name: flutter-offline-bundle
+          path: |
             flutter-arm64-stable.tar.xz
             checksum.txt
+          retention-days: 7  # Artifacts expire, unlike releases
+          
