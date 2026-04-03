@@ -18,7 +18,7 @@ jobs:
         run: |
           cd flutter
           # This downloads the Linux-ARM64 engine and tools into the SDK
-          ./bin/flutter precache --linux-arm64 --no-android --no-ios
+          ./bin/flutter precache --linux --no-android --no-ios --universal
 
       - name: Clean unnecessary files
         run: |
