@@ -1,0 +1,6 @@
+neofetch
+wget
+gcc
+cargo
+rustc
+openjdk-17-jdk
