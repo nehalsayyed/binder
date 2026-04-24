@@ -1,42 +1,47 @@
-name: Build Flutter ARM64 Offline
-on: 
-  workflow_dispatch: 
+name: ARM64 Postgres Infrastructure
+
+on:
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
-  build:
+  postgres-arm:
+    # Use the native ARM64 runner (Standard in 2026)
     runs-on: ubuntu-24.04-arm
+    
+    services:
+      # This runs the ARM64 version of Postgres natively
+      postgres:
+        image: arm64v8/postgres:16-alpine
+        env:
+          POSTGRES_USER: dev_user
+          POSTGRES_PASSWORD: dev_password
+          POSTGRES_DB: dev_db
+        ports:
+          - 5432:5432
+        # Health check to ensure DB is ready before steps run
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
-      - name: Checkout Flutter
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Verify Architecture
         run: |
-          git clone https://github.com/flutter/flutter.git -b stable
-          cd flutter
-          ./bin/flutter --version
+          echo "Current CPU Architecture:"
+          uname -m
+          lscpu | grep "Model name"
 
-      - name: Precache ARM64 Artifacts
+      - name: Test Database Connection
         run: |
-          cd flutter
-          # Automatically grabs ARM64 artifacts because the runner is ARM64
-          ./bin/flutter precache --linux --no-android --no-ios --universal
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          PGPASSWORD=dev_password psql -h localhost -U dev_user -d dev_db -c "SELECT version();"
 
-      - name: Clean unnecessary files
+      - name: Your Innovation Task
         run: |
-          rm -rf flutter/.git
-          rm -rf flutter/bin/cache/artifacts/gradle_wrapper
-
-      - name: Compress (High Compression XZ)
-        run: |
-          # Use -T0 to use all CPU cores for faster compression
-          tar -cf - flutter/ | xz -9 -T0 > flutter-arm64-stable.tar.xz
-
-      - name: Generate Checksum
-        run: sha256sum flutter-arm64-stable.tar.xz > checksum.txt
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-offline-bundle
-          path: |
-            flutter-arm64-stable.tar.xz
-            checksum.txt
-          retention-days: 7  # Artifacts expire, unlike releases
+          echo "Running your custom GNU/ARM64 logic here..."
+          # Add your docker or compilation commands here
           
