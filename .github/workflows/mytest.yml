@@ -1,49 +1,41 @@
-name: KVM Support Check (ARM64)
-on: 
-  workflow_dispatch: # Allows you to run this manually from the Actions tab
+name: x64 KVM Diagnostic
+on: workflow_dispatch
 
 jobs:
-  check-kvm:
-    runs-on: ubuntu-24.04-arm # Using the 2026 standard ARM runner
+  check-x64-kvm:
+    runs-on: ubuntu-latest # This defaults to x64
     steps:
-      - name: System Info
+      - name: CPU Info
         run: |
-          echo "Architecture: $(uname -m)"
-          echo "Kernel: $(uname -r)"
+          lscpu | grep -E "Virtualization|Hypervisor"
+          # Check for VMX (Intel) or SVM (AMD) flags
+          grep -E "vmx|svm" /proc/cpuinfo || echo "No hardware virtualization flags found"
 
-      - name: Check for KVM Device
+      - name: Enable KVM Access
         run: |
-          if [ -e /dev/kvm ]; then
-            echo "✅ /dev/kvm exists."
-            ls -l /dev/kvm
-          else
-            echo "❌ /dev/kvm NOT found."
-          fi
+          # The "99-kvm4all" trick for standard runners
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
 
-      - name: Attempt to Enable KVM Permissions
-        run: |
-          # Sometimes it exists but the 'runner' user isn't in the group
-          sudo chmod 666 /dev/kvm || echo "Could not change permissions"
-
-      - name: Install QEMU and CPU Checker
+      - name: Install Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-system-arm cpu-checker
+          sudo apt-get install -y qemu-system-x86 cpu-checker
 
-      - name: Verify KVM via kvm-ok
-        run: |
-          # kvm-ok is the definitive tool to check for nested virtualization
-          sudo kvm-ok || echo "kvm-ok reported failure"
+      - name: Verify with kvm-ok
+        run: sudo kvm-ok
 
-      - name: QEMU Hardware Acceleration Test
+      - name: Test QEMU Acceleration
         run: |
-          # This command will fail quickly if KVM isn't actually working
-          qemu-system-aarch64 -accel kvm -display none -M virt -cpu host -monitor stdio <<EOF
+          # Run a tiny check to see if KVM initializes
+          qemu-system-x86_64 -accel kvm -display none -monitor stdio <<EOF
           quit
           EOF
           if [ $? -eq 0 ]; then
-            echo "🚀 SUCCESS: KVM is working and usable!"
+            echo "🚀 KVM is active and ready on x64!"
           else
-            echo "⚠️ KVM initialization failed. Falling back to software emulation."
+            echo "❌ KVM failed."
           fi
           
