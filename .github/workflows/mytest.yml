@@ -1,41 +1,48 @@
-name: x64 KVM Diagnostic
+name: Android Emulator & AVF Check
 on: workflow_dispatch
 
 jobs:
-  check-x64-kvm:
-    runs-on: ubuntu-latest # This defaults to x64
+  test:
+    runs-on: ubuntu-latest
     steps:
-      - name: CPU Info
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Check Virtualization Support (AVF/KVM)
         run: |
+          echo "--- CPU Info ---"
           lscpu | grep -E "Virtualization|Hypervisor"
-          # Check for VMX (Intel) or SVM (AMD) flags
-          grep -E "vmx|svm" /proc/cpuinfo || echo "No hardware virtualization flags found"
+          echo "--- KVM Check ---"
+          # On standard Ubuntu runners, this usually returns '0' (no KVM)
+          ls /dev/kvm || echo "KVM device not found. Using software rendering."
+          echo "--- AVF Kernel Driver Check ---"
+          ls /sys/class/misc/pkvm || echo "AVF/pKVM not supported on this kernel."
 
-      - name: Enable KVM Access
+      - name: Install Android Emulator & Tools
         run: |
-          # The "99-kvm4all" trick for standard runners
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-          ls -l /dev/kvm
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "emulator" "system-images;android-34;google_apis;x86_64"
 
-      - name: Install Tools
+      - name: Create AVD
         run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-system-x86 cpu-checker
+          echo "no" | $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd -n test_avd -k "system-images;android-34;google_apis;x86_64" --force
 
-      - name: Verify with kvm-ok
-        run: sudo kvm-ok
-
-      - name: Test QEMU Acceleration
+      - name: Run Emulator and Check AVF Support
         run: |
-          # Run a tiny check to see if KVM initializes
-          qemu-system-x86_64 -accel kvm -display none -monitor stdio <<EOF
-          quit
-          EOF
-          if [ $? -eq 0 ]; then
-            echo "🚀 KVM is active and ready on x64!"
-          else
-            echo "❌ KVM failed."
-          fi
+          # Start emulator in background with software rendering
+          # -accel off is required for Ubuntu runners
+          $ANDROID_HOME/emulator/emulator -avd test_avd -no-window -no-audio -no-boot-anim -accel off > /dev/null 2>&1 &
+          
+          # Wait for boot
+          adb wait-for-device
+          echo "Emulator is up. Checking AVF properties..."
+          
+          # Check for AVF / Microdroid support inside the emulator
+          adb shell getprop | grep virt
+          adb shell ls /apex/com.android.virt/bin/vm || echo "AVF binary not found in system image."
           
