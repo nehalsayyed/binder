@@ -1,47 +1,49 @@
-name: ARM64 Postgres Infrastructure
-
-on:
-  workflow_dispatch: # Allows manual triggering
+name: KVM Support Check (ARM64)
+on: 
+  workflow_dispatch: # Allows you to run this manually from the Actions tab
 
 jobs:
-  postgres-arm:
-    # Use the native ARM64 runner (Standard in 2026)
-    runs-on: ubuntu-24.04-arm
-    
-    services:
-      # This runs the ARM64 version of Postgres natively
-      postgres:
-        image: arm64v8/postgres:16-alpine
-        env:
-          POSTGRES_USER: dev_user
-          POSTGRES_PASSWORD: dev_password
-          POSTGRES_DB: dev_db
-        ports:
-          - 5432:5432
-        # Health check to ensure DB is ready before steps run
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
+  check-kvm:
+    runs-on: ubuntu-24.04-arm # Using the 2026 standard ARM runner
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Verify Architecture
+      - name: System Info
         run: |
-          echo "Current CPU Architecture:"
-          uname -m
-          lscpu | grep "Model name"
+          echo "Architecture: $(uname -m)"
+          echo "Kernel: $(uname -r)"
 
-      - name: Test Database Connection
+      - name: Check for KVM Device
         run: |
-          sudo apt-get update && sudo apt-get install -y postgresql-client
-          PGPASSWORD=dev_password psql -h localhost -U dev_user -d dev_db -c "SELECT version();"
+          if [ -e /dev/kvm ]; then
+            echo "✅ /dev/kvm exists."
+            ls -l /dev/kvm
+          else
+            echo "❌ /dev/kvm NOT found."
+          fi
 
-      - name: Your Innovation Task
+      - name: Attempt to Enable KVM Permissions
         run: |
-          echo "Running your custom GNU/ARM64 logic here..."
-          # Add your docker or compilation commands here
+          # Sometimes it exists but the 'runner' user isn't in the group
+          sudo chmod 666 /dev/kvm || echo "Could not change permissions"
+
+      - name: Install QEMU and CPU Checker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-arm cpu-checker
+
+      - name: Verify KVM via kvm-ok
+        run: |
+          # kvm-ok is the definitive tool to check for nested virtualization
+          sudo kvm-ok || echo "kvm-ok reported failure"
+
+      - name: QEMU Hardware Acceleration Test
+        run: |
+          # This command will fail quickly if KVM isn't actually working
+          qemu-system-aarch64 -accel kvm -display none -M virt -cpu host -monitor stdio <<EOF
+          quit
+          EOF
+          if [ $? -eq 0 ]; then
+            echo "🚀 SUCCESS: KVM is working and usable!"
+          else
+            echo "⚠️ KVM initialization failed. Falling back to software emulation."
+          fi
           
