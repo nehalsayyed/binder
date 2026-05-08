@@ -1,69 +1,13 @@
-name: Android Emulator KVM & AVF Check
+name: Build
 on: workflow_dispatch
 
 jobs:
-  emulator-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  build:
+     runs-on: ubuntu-latest
 
-      - name: Enable KVM Permissions
-        run: |
-          # Ensure the runner user has access to the KVM device
-          sudo adduser $USER kvm
-          sudo chmod 666 /dev/kvm
-          [ -e /dev/kvm ] && echo "KVM is verified and accessible." || (echo "KVM check failed" && exit 1)
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Install Android Tools
-        run: |
-          # Use sdkmanager to get the emulator and the x86_64 image
-          # Note: AVF is best tested on API 33+ (Tiramisu/UpsideDownCake)
-          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install \
-            "emulator" "platform-tools" "system-images;android-34;google_apis;x86_64"
-
-      - name: Configure PATH
-        run: |
-          echo "$ANDROID_HOME/emulator" >> $GITHUB_PATH
-          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
-
-      - name: Create AVD
-        run: |
-          avdmanager create avd -n avf_test -k "system-images;android-34;google_apis;x86_64" --force --device "pixel_6"
-
-      - name: Start Emulator with KVM
-        run: |
-          # Start with KVM acceleration enabled (-accel on)
-          # -no-snapshot is used to ensure a fresh boot for AVF service init
-          emulator -avd avf_test -no-window -no-audio -no-boot-anim -accel on -gpu swiftshader_indirect &
-          
-          echo "Waiting for device..."
-          adb wait-for-device
-          
-          # Reliable boot check
-          timeout 300 bash -c 'while [[ "$(adb shell getprop sys.boot_completed | tr -d "\r")" != "1" ]]; do sleep 5; done'
-          echo "Emulator Booted Successfully with KVM."
-
-      - name: Check AVF Support (New Terminal Diagnostics)
-        run: |
-          echo "--- 1. AVF Service Status ---"
-          adb shell dumpsys virtualization || echo "Virtualization service not found."
-
-          echo "--- 2. Checking pKVM / AVF Capability ---"
-          # Check if the 'vm' tool is available in the APEX
-          adb shell "ls /apex/com.android.virt/bin/vm" && echo "AVF CLI tool found."
-          
-          echo "--- 3. Terminal Test: Running a Microdroid instance ---"
-          # Attempt to use the 'vm' tool to see if the environment supports creating a VM
-          # This is the 'new terminal' check for AVF support
-          adb shell "/apex/com.android.virt/bin/vm check-support" || echo "Hardware/Kernel does not support AVF guests."
-
-          echo "--- 4. Kernel Features ---"
-          adb shell "zgrep CONFIG_PKVM /proc/config.gz" || echo "pKVM not enabled in kernel config."
-          
+     steps:
+       - run: |
+            git clone https://github.com/projectdiscovery/katana.git
+            cd katana
+            docker build -t scraper .
+            docker run scraper
