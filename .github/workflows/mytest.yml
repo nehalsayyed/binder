@@ -1,10 +1,10 @@
-name: Build stable-diffusion.cpp Native ARM64 with WebUI
+name: Build stable-diffusion.cpp Helio G80 ARM64
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-native-arm64:
+  build-arm64:
     runs-on: ubuntu-24.04-arm 
     
     steps:
@@ -17,30 +17,36 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake curl
+          # libgomp1 is required for OpenMP multi-threading on your device
+          sudo apt-get install -y build-essential cmake curl libgomp1
           
-          # Install Node.js (needed for npm)
+          # Install Node.js
           curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
           sudo apt-get install -y nodejs
           
-          # Install pnpm globally
+          # Install pnpm
           sudo npm install -g pnpm
 
       - name: Configure and Build
         run: |
           cd stable-diffusion.cpp
-          # -DSD_BUILD_SERVER=ON enables the Web UI/HTTP server functionality
+          # 1. We set GGML_NATIVE=OFF to avoid 'Illegal Instruction'
+          # 2. We use SD_FLASH_ATTN=ON for memory efficiency
+          # 3. We keep SD_BUILD_SERVER=ON for WebUI
           cmake -B build \
-            -DBUILD_SHARED_LIBS=ON \
             -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=ON \
+            -DSD_BUILD_SERVER=ON \
             -DSD_FLASH_ATTN=ON \
-            -DSD_BUILD_SERVER=ON
+            -DGGML_NATIVE=OFF \
+            -DGGML_OPENMP=ON
+          
           cmake --build build --config Release -j $(nproc)
 
-      - name: Upload Full Build Folder
+      - name: Upload Build
         uses: actions/upload-artifact@v4
         with:
-          name: stable-diffusion-webui-arm64
+          name: stable-diffusion-helio-g80
           path: stable-diffusion.cpp/build/
           compression-level: 6
           
