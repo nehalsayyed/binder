@@ -1,4 +1,4 @@
-name: Build llama.cpp Native ARM64
+name: Build stable-diffusion.cpp Native ARM64 with WebUI
 
 on:
   workflow_dispatch:
@@ -8,33 +8,39 @@ jobs:
     runs-on: ubuntu-24.04-arm 
     
     steps:
-      - name: Clone llama.cpp
+      - name: Clone stable-diffusion.cpp
         run: |
-          git clone https://github.com/ggerganov/llama.cpp.git
-          cd llama.cpp
+          git clone --recursive https://github.com/leejet/stable-diffusion.cpp.git
+          cd stable-diffusion.cpp
           git submodule update --init --recursive
 
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake
+          sudo apt-get install -y build-essential cmake curl
+          
+          # Install Node.js (needed for npm)
+          curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+          
+          # Install pnpm globally
+          sudo npm install -g pnpm
 
       - name: Configure and Build
         run: |
-          cd llama.cpp
-          # Using -B build automatically creates the build directory
+          cd stable-diffusion.cpp
+          # -DSD_BUILD_SERVER=ON enables the Web UI/HTTP server functionality
           cmake -B build \
             -DBUILD_SHARED_LIBS=ON \
             -DCMAKE_BUILD_TYPE=Release \
-            -DLLAMA_NATIVE=ON
+            -DSD_FLASH_ATTN=ON \
+            -DSD_BUILD_SERVER=ON
           cmake --build build --config Release -j $(nproc)
 
       - name: Upload Full Build Folder
         uses: actions/upload-artifact@v4
         with:
-          name: llama-cpp-full-build-arm64
-          # Path points directly to the generated build directory
-          path: llama.cpp/build/
-          # Optional: compression-level can be set from 0 to 9
+          name: stable-diffusion-webui-arm64
+          path: stable-diffusion.cpp/build/
           compression-level: 6
           
