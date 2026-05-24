@@ -1,36 +1,42 @@
-name: Build Optimized SD Binary
-on: workflow_dispatch
+name: Cross-Compile for Android
+
+on:
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          repository: leejet/stable-diffusion.cpp
           submodules: recursive
 
-      - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake build-essential libwebp-dev
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r27d
 
-      - name: Build with G80 Specific Optimizations
+      - name: Build for Android aarch64
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: |
           mkdir build && cd build
-          # -mcpu=cortex-a75: Optimizes for your specific CPU core architecture
-          # +simd: Ensures NEON/ASIMD vectorization is used
-          # +dotprod: Enables the hardware dot-product acceleration visible in your cpuinfo
-          # -O3: Aggressive compiler optimization
-          cmake .. -DCMAKE_CXX_FLAGS="-mcpu=cortex-a75+simd+dotprod -O3" -DSD_USE_SYSTEM_WEBP=ON
-          make -j$(nproc)
+          # Configure CMake with the NDK toolchain
+          cmake .. \
+            -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-24 \
+            -DSD_USE_SYSTEM_WEBP=ON \
+            -DCMAKE_BUILD_TYPE=Release
+            
+          # Build with a single job to prevent OOM
+          make -j1
 
-      - name: Verify Build Output
-        run: |
-          echo "Contents of the build folder:"
-          ls -R build/
-
-      - name: Upload Entire Build Folder
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sd-full-build-g80
-          path: build/
+          name: stable-diffusion-android
+          path: build/bin/  # Adjust path based on where your binary is generated
           
