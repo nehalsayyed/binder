@@ -23,9 +23,14 @@ jobs:
           cmake .. -DCMAKE_CXX_FLAGS="-mcpu=cortex-a75+simd+dotprod -O3" -DSD_USE_SYSTEM_WEBP=ON
           make -j$(nproc)
 
-      - name: Upload Binary
+      - name: Verify Build Output
+        run: |
+          echo "Contents of the build folder:"
+          ls -R build/
+
+      - name: Upload Entire Build Folder
         uses: actions/upload-artifact@v4
         with:
-          name: sd-optimized-g80
-          path: build/bin/sd
+          name: sd-full-build-g80
+          path: build/
           
