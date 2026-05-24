@@ -24,7 +24,7 @@ jobs:
           make -j$(nproc)
 
       - name: Upload Binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sd-optimized-g80
           path: build/bin/sd
