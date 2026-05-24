@@ -1,52 +1,31 @@
-name: Build stable-diffusion.cpp Helio G80 ARM64
-
-on:
-  workflow_dispatch:
+name: Build Optimized SD Binary
+on: workflow_dispatch
 
 jobs:
-  build-arm64:
-    runs-on: ubuntu-24.04-arm 
-    
+  build:
+    runs-on: ubuntu-24.04-arm
     steps:
-      - name: Clone stable-diffusion.cpp
-        run: |
-          git clone --recursive https://github.com/leejet/stable-diffusion.cpp.git
-          cd stable-diffusion.cpp
-          git submodule update --init --recursive
+      - uses: actions/checkout@v3
+        with:
+          repository: leejet/stable-diffusion.cpp
+          submodules: recursive
 
       - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          # libgomp1 is required for OpenMP multi-threading on your device
-          sudo apt-get install -y build-essential cmake curl libgomp1
-          
-          # Install Node.js
-          curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-          sudo apt-get install -y nodejs
-          
-          # Install pnpm
-          sudo npm install -g pnpm
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
 
-      - name: Configure and Build
+      - name: Build with G80 Specific Optimizations
         run: |
-          cd stable-diffusion.cpp
-          # 1. We set GGML_NATIVE=OFF to avoid 'Illegal Instruction'
-          # 2. We use SD_FLASH_ATTN=ON for memory efficiency
-          # 3. We keep SD_BUILD_SERVER=ON for WebUI
-          cmake -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_SHARED_LIBS=ON \
-            -DSD_BUILD_SERVER=ON \
-            -DSD_FLASH_ATTN=ON \
-            -DGGML_NATIVE=OFF \
-            -DGGML_OPENMP=ON
-          
-          cmake --build build --config Release -j $(nproc)
+          mkdir build && cd build
+          # -mcpu=cortex-a75: Optimizes for your specific CPU core architecture
+          # +simd: Ensures NEON/ASIMD vectorization is used
+          # +dotprod: Enables the hardware dot-product acceleration visible in your cpuinfo
+          # -O3: Aggressive compiler optimization
+          cmake .. -DCMAKE_CXX_FLAGS="-mcpu=cortex-a75+simd+dotprod -O3" -DSD_USE_SYSTEM_WEBP=ON
+          make -j$(nproc)
 
-      - name: Upload Build
-        uses: actions/upload-artifact@v4
+      - name: Upload Binary
+        uses: actions/upload-artifact@v3
         with:
-          name: stable-diffusion-helio-g80
-          path: stable-diffusion.cpp/build/
-          compression-level: 6
+          name: sd-optimized-g80
+          path: build/bin/sd
           
