@@ -1,48 +1,39 @@
-name: Cross-Compile for Android (Full Source)
+name: Build MNN Python Wheel
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-wheel:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout MNN
         uses: actions/checkout@v4
         with:
-          repository: leejet/stable-diffusion.cpp
+          repository: alibaba/MNN
           submodules: recursive
 
-      - name: Setup Android NDK
-        uses: nttld/setup-ndk@v1
-        id: setup-ndk
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          ndk-version: r27d
+          python-version: '3.10'
 
-      - name: Build
-        env:
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-          CXXFLAGS: "-O0 -g0 -fno-exceptions -fno-rtti -fno-inline -pipe"
+      - name: Install Dependencies
         run: |
-          # 1. Start fresh: Remove any previous build files
-          rm -rf build
-          mkdir build && cd build
-          
-          # 2. Configure with OpenMP explicitly disabled
-          cmake .. \
-            -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM=android-24 \
-            -DGGML_OPENMP=OFF \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_SHARED_LIBS=OFF
-            
-          # 3. Build single-threaded to prevent OOM
-          make -j1
+          pip install wheel setuptools
 
-      - name: Upload Binary
+      - name: Build Wheel
+        run: |
+          # Navigate to the python directory of MNN
+          cd pymnn
+          
+          # MNN usually provides a script to build the python binding
+          # This command creates the .whl file in the dist/ folder
+          python3 setup.py bdist_wheel
+
+      - name: Upload Wheel
         uses: actions/upload-artifact@v4
         with:
-          name: stable-diffusion-android
-          path: build/bin/  # The binary is placed here
+          name: MNN-wheel
+          path: pymnn/dist/*.whl
           
