@@ -4,36 +4,44 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-wheel:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout MNN
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
           repository: alibaba/MNN
           submodules: recursive
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
       - name: Install Dependencies
         run: |
-          pip install wheel setuptools
+          sudo apt-get update
+          sudo apt-get install -y cmake python3-dev python3-pip
 
-      - name: Build Wheel
+      - name: Build MNN and Python Bindings
         run: |
-          # Navigate to the python directory of MNN
-          cd pymnn
+          # 1. Create build directory
+          mkdir build && cd build
           
-          # MNN usually provides a script to build the python binding
-          # This command creates the .whl file in the dist/ folder
+          # 2. Configure MNN to build with Python support
+          # -DMNN_BUILD_PYMNN=ON is the key flag
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DMNN_BUILD_PYMNN=ON \
+            -DMNN_BUILD_TRAIN=ON
+            
+          # 3. Compile
+          make -j$(nproc)
+          
+          # 4. Generate the wheel
+          # After building, the project usually generates the setup structure
+          # in the 'pymnn' folder or within the build directory.
+          cd ../pymnn
           python3 setup.py bdist_wheel
 
       - name: Upload Wheel
         uses: actions/upload-artifact@v4
         with:
-          name: MNN-wheel
+          name: mnn-wheel
           path: pymnn/dist/*.whl
           
