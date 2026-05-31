@@ -1,4 +1,4 @@
-name: Build and Test Bonsai Image Demo
+Name: Build and Test Bonsai Image Demo
 
 on:
   workflow_dispatch: # Allows manual triggering from the Actions tab
@@ -26,4 +26,12 @@ jobs:
           cd Bonsai-Image-Demo
           chmod +x ./scripts/generate.sh
           ./scripts/generate.sh --prompt "An icy Bonsai tree, in a rainy forest with a snowy mountains in the background, photo realistic."
+
+      # Step 4: Upload the generated image and metadata JSON
+      - name: Upload Generated Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: bonsai-generated-images
+          path: Bonsai-Image-Demo/outputs/
+          if-no-files-found: error # Fails the build if the output directory is empty
           
