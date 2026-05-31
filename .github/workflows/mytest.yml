@@ -1,4 +1,4 @@
-Name: Build and Test Bonsai Image Demo
+name: Build and Test Bonsai Image Demo
 
 on:
   workflow_dispatch: # Allows manual triggering from the Actions tab
@@ -33,5 +33,5 @@ jobs:
         with:
           name: bonsai-generated-images
           path: Bonsai-Image-Demo/outputs/
-          # Fails the build if the output directory is empty
+          if-no-files-found: error
           
