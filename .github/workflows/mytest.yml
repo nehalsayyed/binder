@@ -6,26 +6,24 @@ on:
 jobs:
   build-and-test:
     runs-on: macos-latest
-    
-    # Force all steps to run inside the subdirectory
-    defaults:
-      run:
-        working-directory: ./Bonsai-Image-Demo
 
     steps:
-      # Step 1: Check out the repository code
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # Step 2: Make sure the setup script is executable and run it
+      # Step 1: Manually clone the repository to the runner
+      - name: Force Manual Clone
+        run: |
+          git clone https://github.com/PrismML-Eng/Bonsai-Image-Demo.git
+          
+      # Step 2: Change into the directory, make executable, and run setup
       - name: Run Setup
         run: |
+          cd Bonsai-Image-Demo
           chmod +x ./setup.sh
           ./setup.sh
 
-      # Step 3: Make sure the generation script is executable and run it
+      # Step 3: Change into the directory, make executable, and run generation
       - name: Generate Image
         run: |
+          cd Bonsai-Image-Demo
           chmod +x ./scripts/generate.sh
           ./scripts/generate.sh --prompt "An icy Bonsai tree, in a rainy forest with a snowy mountains in the background, photo realistic."
           
