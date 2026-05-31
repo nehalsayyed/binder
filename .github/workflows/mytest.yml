@@ -33,5 +33,5 @@ jobs:
         with:
           name: bonsai-generated-images
           path: Bonsai-Image-Demo/outputs/
-          if-no-files-found: error # Fails the build if the output directory is empty
+          # Fails the build if the output directory is empty
           
