@@ -6,6 +6,11 @@ on:
 jobs:
   build-and-test:
     runs-on: macos-latest
+    
+    # Force all steps to run inside the subdirectory
+    defaults:
+      run:
+        working-directory: ./Bonsai-Image-Demo
 
     steps:
       # Step 1: Check out the repository code
