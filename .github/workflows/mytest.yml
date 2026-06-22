@@ -43,8 +43,8 @@ jobs:
           cd build/bin
           ls -la
           file sd-cli
-          # Verify that the build is truly static and doesn't rely on shared objects (.so)
-          if ld d sd-cli 2>&1 | grep -q "not a dynamic executable"; then
+          # FIXED: Changed 'ld d' to 'ldd' to properly check dynamic dependencies
+          if ldd sd-cli 2>&1 | grep -q "not a dynamic executable"; then
             echo "Success: Binary is fully statically linked!"
           else
             echo "Warning: Binary might have dynamic dependencies."
@@ -57,8 +57,9 @@ jobs:
           cd release-package
           tar -czvf sd-cli-linux-arm64-static.tar.gz sd-cli
 
+      # FIXED: Changed from actions/artifacts@v4 to actions/upload-artifact@v4
       - name: Upload Build Artifact
-        uses: actions/artifacts@v4
+        uses: actions/upload-artifact@v4
         with:
           name: sd-cli-linux-arm64-static
           path: release-package/sd-cli-linux-arm64-static.tar.gz
