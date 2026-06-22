@@ -1,37 +1,66 @@
-name: Build and Test Bonsai Image Demo
+name: Build Static stable-diffusion.cpp (ARM64 Text-to-Video)
 
 on:
-  workflow_dispatch: # Allows manual triggering from the Actions tab
+  workflow_dispatch: # Allows you to manually trigger the build from the Actions tab
 
 jobs:
-  build-and-test:
-    runs-on: macos-latest
+  build-arm64-static:
+    # Uses GitHub's free native ARM64 Ubuntu runner
+    runs-on: ubuntu-latest-arm64
 
     steps:
-      # Step 1: Manually clone the repository to the runner
-      - name: Force Manual Clone
-        run: |
-          git clone https://github.com/PrismML-Eng/Bonsai-Image-Demo.git
-          
-      # Step 2: Change into the directory, make executable, and run setup
-      - name: Run Setup
-        run: |
-          cd Bonsai-Image-Demo
-          chmod +x ./setup.sh
-          ./setup.sh
-
-      # Step 3: Change into the directory, make executable, and run generation
-      - name: Generate Image
-        run: |
-          cd Bonsai-Image-Demo
-          chmod +x ./scripts/generate.sh
-          ./scripts/generate.sh --prompt "An icy Bonsai tree, in a rainy forest with a snowy mountains in the background, photo realistic."
-
-      # Step 4: Upload the generated image and metadata JSON
-      - name: Upload Generated Output
-        uses: actions/upload-artifact@v4
+      - name: Checkout Code Base
+        uses: actions/checkout@v4
         with:
-          name: bonsai-generated-images
-          path: Bonsai-Image-Demo/outputs/
-          if-no-files-found: error
+          repository: leejet/stable-diffusion.cpp
+          submodules: 'recursive' # Deep clones submodules (ggml, etc.) for latest patches
+          fetch-depth: 0
+
+      - name: Install System Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake git pkg-config
+
+      - name: Configure CMake for Static ARM64 Build
+        run: |
+          mkdir build
+          cd build
+          # -static forces a completely standalone binary independent of host OS libraries
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXE_LINKER_FLAGS="-static" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-static" \
+            -DSD_BUILD_SHARED_LIBS=OFF
+
+      - name: Compile Source Code
+        run: |
+          cd build
+          # Uses all available ARM64 cores on the runner to accelerate compilation
+          cmake --build . --config Release --parallel $(nproc)
+
+      - name: Verify Binary and Tensor Constraints
+        run: |
+          cd build/bin
+          ls -la
+          file sd-cli
+          # Verify that the build is truly static and doesn't rely on shared objects (.so)
+          if ld d sd-cli 2>&1 | grep -q "not a dynamic executable"; then
+            echo "Success: Binary is fully statically linked!"
+          else
+            echo "Warning: Binary might have dynamic dependencies."
+          fi
+
+      - name: Package Standalone Binary
+        run: |
+          mkdir -p release-package
+          cp build/bin/sd-cli release-package/
+          cd release-package
+          tar -czvf sd-cli-linux-arm64-static.tar.gz sd-cli
+
+      - name: Upload Build Artifact
+        uses: actions/artifacts@v4
+        with:
+          name: sd-cli-linux-arm64-static
+          path: release-package/sd-cli-linux-arm64-static.tar.gz
+          retention-days: 5
           
