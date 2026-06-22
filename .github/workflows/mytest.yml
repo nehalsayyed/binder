@@ -1,4 +1,4 @@
-name: Build Common stable-diffusion.cpp (ARM64 Text-to-Video)
+name: Build Generic stable-diffusion.cpp (ARM64 Text-to-Video)
 
 on:
   workflow_dispatch: # Allows you to manually trigger the build from the Actions tab
@@ -20,16 +20,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake git pkg-config
 
-      - name: Configure CMake
+      - name: Configure CMake for Generic ARMv8-A
         run: |
           mkdir build
           cd build
-          # Standard dynamic build with all examples (cli, server, etc.) enabled
+          # -DCMAKE_C_FLAGS and CXX_FLAGS force the compiler to drop modern instruction requirements
+          # Disabling specific GGML hardware accelerations prevents the "Illegal instruction" crash
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_FLAGS="-march=armv8-a" \
+            -DCMAKE_CXX_FLAGS="-march=armv8-a" \
             -DSD_BUILD_SHARED_LIBS=OFF \
             -DSD_BUILD_EXAMPLES=ON \
-            -DGGML_OPENMP=ON
+            -DGGML_OPENMP=ON \
+            -DGGML_NEON=ON
 
       - name: Compile Source Code
         run: |
@@ -42,12 +46,12 @@ jobs:
           cp build/bin/sd-cli release-package/
           cp build/bin/sd-server release-package/
           cd release-package
-          tar -czvf sdcpp-linux-arm64-common.tar.gz sd-cli sd-server
+          tar -czvf sdcpp-linux-arm64-generic.tar.gz sd-cli sd-server
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sdcpp-linux-arm64-common
-          path: release-package/sdcpp-linux-arm64-common.tar.gz
+          name: sdcpp-linux-arm64-generic
+          path: release-package/sdcpp-linux-arm64-generic.tar.gz
           retention-days: 5
           
