@@ -6,7 +6,7 @@ on:
 jobs:
   build-arm64-static:
     # Uses GitHub's free native ARM64 Ubuntu runner
-    runs-on: ubuntu-latest-arm64
+    runs-on: ubuntu-24.04-arm
 
     steps:
       - name: Checkout Code Base
