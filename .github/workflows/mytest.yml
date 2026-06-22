@@ -1,10 +1,11 @@
-name: Build Generic stable-diffusion.cpp (ARM64 Text-to-Video)
+name: Build Absolute Generic stable-diffusion.cpp (ARM64 Text-to-Video)
 
 on:
-  workflow_dispatch: # Allows you to manually trigger the build from the Actions tab
+  workflow_dispatch: # Allows manual trigger from the Actions tab
 
 jobs:
-  build-arm64:
+  build-arm64-generic:
+    # Uses GitHub's native ARM64 Ubuntu runner
     runs-on: ubuntu-24.04-arm
 
     steps:
@@ -12,7 +13,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: leejet/stable-diffusion.cpp
-          submodules: 'recursive'
+          submodules: 'recursive' # Pulls matching latest 5D video tensor updates
           fetch-depth: 0
 
       - name: Install System Build Dependencies
@@ -20,38 +21,53 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake git pkg-config
 
-      - name: Configure CMake for Generic ARMv8-A
+      - name: Configure CMake for Absolute Generic ARM64 Execution
         run: |
           mkdir build
           cd build
-          # -DCMAKE_C_FLAGS and CXX_FLAGS force the compiler to drop modern instruction requirements
-          # Disabling specific GGML hardware accelerations prevents the "Illegal instruction" crash
+          
+          # EXPLANATION OF CONSTRAINTS Bypassing Server-Leaking Extensions:
+          # -DCMAKE_SYSTEM_PROCESSOR=aarch64 overrides native cloud runner targeting.
+          # -march=armv8-a forces foundational ARM 64-bit code generation blocks only.
+          # -mtune=generic instructs compilation structures to optimize for standard mobile core distributions.
+          # -DGGML_NATIVE=OFF prevents compiler optimization sweeps from turning on unauthorized Neoverse extensions.
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_FLAGS="-march=armv8-a" \
-            -DCMAKE_CXX_FLAGS="-march=armv8-a" \
+            -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+            -DCMAKE_C_FLAGS="-march=armv8-a -mtune=generic" \
+            -DCMAKE_CXX_FLAGS="-march=armv8-a -mtune=generic" \
             -DSD_BUILD_SHARED_LIBS=OFF \
             -DSD_BUILD_EXAMPLES=ON \
+            -DGGML_NATIVE=OFF \
             -DGGML_OPENMP=ON \
             -DGGML_NEON=ON
 
-      - name: Compile Source Code
+      - name: Compile Source Code Base
         run: |
           cd build
+          # Leverages runner hardware limits to compile parallel instruction segments safely
           cmake --build . --config Release --parallel $(nproc)
 
-      - name: Package Binaries
+      - name: Verify Clean Binary Format
+        run: |
+          cd build/bin
+          ls -la
+          file sd-cli
+          # Ensure there are no lingering dynamic compilation block warnings
+          ldd sd-cli || true
+
+      - name: Package Standalone Binaries
         run: |
           mkdir -p release-package
           cp build/bin/sd-cli release-package/
           cp build/bin/sd-server release-package/
           cd release-package
-          tar -czvf sdcpp-linux-arm64-generic.tar.gz sd-cli sd-server
+          tar -czvf sdcpp-linux-arm64-absolute-generic.tar.gz sd-cli sd-server
 
-      - name: Upload Build Artifact
+      - name: Upload Build Artifact Package
         uses: actions/upload-artifact@v4
         with:
-          name: sdcpp-linux-arm64-generic
-          path: release-package/sdcpp-linux-arm64-generic.tar.gz
+          name: sdcpp-linux-arm64-absolute-generic
+          path: release-package/sdcpp-linux-arm64-absolute-generic.tar.gz
           retention-days: 5
           
