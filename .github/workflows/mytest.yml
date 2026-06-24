@@ -14,21 +14,11 @@ on:
 
 jobs:
   generate-and-compile:
-    # macOS runners contain Xcode and iOS SDKs pre-installed
     runs-on: macos-14
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: System Diagnostic - Check Available Xcode Versions
-        run: |
-          echo "=========================================="
-          echo "       AVAILABLE XCODE ENVIRONMENTS       "
-          echo "=========================================="
-          xcode-select -p
-          xcodebuild -version
-          xcrun --sdk iphoneos --show-sdk-version
 
       - name: Scaffold New SwiftUI App Structure
         run: |
@@ -39,11 +29,11 @@ jobs:
           mkdir -p "$APP_NAME/$APP_NAME"
           
           # 1. Create the App Entry Point (SwiftUI)
-          cat << EOF > "$APP_NAME/$APP_NAME/${APP_NAME}App.swift"
+          cat << 'EOF' > "$APP_NAME/$APP_NAME/${APP_NAME}App.swift"
           import SwiftUI
 
           @main
-          struct ${APP_NAME}App: App {
+          struct MyGeneratedApp: App {
               var body: some Scene {
                   WindowGroup {
                       ContentView()
@@ -52,13 +42,13 @@ jobs:
           }
           EOF
 
-          # 2. Create the Primary User Interface View
-          cat << EOF > "$APP_NAME/$APP_NAME/ContentView.swift"
+          # 2. Create the Primary User Interface View (Fixed VUIStack typo here)
+          cat << 'EOF' > "$APP_NAME/$APP_NAME/ContentView.swift"
           import SwiftUI
 
           struct ContentView: View {
               var body: some View {
-                  VUIStack {
+                  VStack {
                       Image(systemName: "cpu")
                           .imageScale(.large)
                           .foregroundColor(.accentColor)
@@ -74,16 +64,16 @@ jobs:
           }
           EOF
 
-          # 3. Create a minimum requirement Info.plist file
-          cat << EOF > "$APP_NAME/$APP_NAME/Info.plist"
+          # 3. Create Info.plist file
+          cat << 'EOF' > "$APP_NAME/$APP_NAME/Info.plist"
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
               <key>CFBundleIdentifier</key>
-              <string>${BUNDLE_ID}</string>
+              <string>IDENTITY_TEMPLATE</string>
               <key>CFBundleName</key>
-              <string>${APP_NAME}</string>
+              <string>NAME_TEMPLATE</string>
               <key>CFBundlePackageType</key>
               <string>APPL</string>
               <key>CFBundleShortVersionString</key>
@@ -96,6 +86,10 @@ jobs:
           </plist>
           EOF
 
+          # Swap out templates for inputs inside safe text blocks
+          sed -i '' "s/IDENTITY_TEMPLATE/${BUNDLE_ID}/g" "$APP_NAME/$APP_NAME/Info.plist"
+          sed -i '' "s/NAME_TEMPLATE/${APP_NAME}/g" "$APP_NAME/$APP_NAME/Info.plist"
+          
           echo "SwiftUI application code generation complete."
         shell: bash
 
@@ -104,11 +98,10 @@ jobs:
           APP_NAME="${{ github.event.inputs.app_name }}"
           BUNDLE_ID="${{ github.event.inputs.bundle_id }}"
           
-          # Create an actual Xcode project structure wrapper (.xcodeproj)
           mkdir -p "$APP_NAME/$APP_NAME.xcodeproj"
           
-          # Generate the critical project.pbxproj mapping file
-          cat << EOF > "$APP_NAME/$APP_NAME.xcodeproj/project.pbxproj"
+          # CHANGED: 'EOF' prevents bash from corrupting xcode comments like /* Begin ... */
+          cat << 'EOF' > "$APP_NAME/$APP_NAME.xcodeproj/project.pbxproj"
           // !$*UTF8*$!
           {
               archiveVersion = 1;
@@ -116,15 +109,15 @@ jobs:
               objectVersion = 56;
               objects = {
                   /* Begin PBXBuildFile section */
-                  10010001/* ${APP_NAME}App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20010001/* ${APP_NAME}App.swift */; };
+                  10010001/* APP_NAMEApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20010001/* APP_NAMEApp.swift */; };
                   10010002/* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20010002/* ContentView.swift */; };
                   /* End PBXBuildFile section */
 
                   /* Begin PBXFileReference section */
-                  20010001/* ${APP_NAME}App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "${APP_NAME}App.swift"; sourceTree = "<group>"; };
+                  20010001/* APP_NAMEApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APP_NAMEApp.swift"; sourceTree = "<group>"; };
                   20010002/* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
                   20010003/* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-                  30010001/* ${APP_NAME}.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "${APP_NAME}.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+                  30010001/* APP_NAME.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "APP_NAME.app"; sourceTree = BUILT_PRODUCTS_DIR; };
                   /* End PBXFileReference section */
 
                   /* Begin PBXFrameworksBuildPhase section */
@@ -135,27 +128,27 @@ jobs:
                   50010001 = {
                       isa = PBXGroup;
                       children = (
-                          50010002/* ${APP_NAME} */,
-                          30010001/* ${APP_NAME}.app */,
+                          50010002/* APP_NAME */,
+                          30010001/* APP_NAME.app */,
                       );
                       sourceTree = "<group>";
                   };
-                  50010002/* ${APP_NAME} */ = {
+                  50010002/* APP_NAME */ = {
                       isa = PBXGroup;
                       children = (
-                          20010001/* ${APP_NAME}App.swift */,
+                          20010001/* APP_NAMEApp.swift */,
                           20010002/* ContentView.swift */,
                           20010003/* Info.plist */,
                       );
-                      path = "${APP_NAME}";
+                      path = "APP_NAME";
                       sourceTree = "<group>";
                   };
                   /* End PBXGroup section */
 
                   /* Begin PBXNativeTarget section */
-                  60010001/* ${APP_NAME} */ = {
+                  60010001/* APP_NAME */ = {
                       isa = PBXNativeTarget;
-                      buildConfigurationList = 70010001/* Build configuration list for PBXNativeTarget "${APP_NAME}" */;
+                      buildConfigurationList = 70010001/* Build configuration list for PBXNativeTarget "APP_NAME" */;
                       buildPhases = (
                           80010001/* Sources */,
                           40010001/* Frameworks */,
@@ -164,9 +157,9 @@ jobs:
                       );
                       dependencies = (
                       );
-                      name = "${APP_NAME}";
-                      productName = "${APP_NAME}";
-                      productReference = 30010001/* ${APP_NAME}.app */;
+                      name = "APP_NAME";
+                      productName = "APP_NAME";
+                      productReference = 30010001/* APP_NAME.app */;
                       productType = "com.apple.product-type.application";
                   };
                   /* End PBXNativeTarget section */
@@ -191,7 +184,7 @@ jobs:
                       projectDirPath = "";
                       projectRoot = "";
                       targets = (
-                          60010001/* ${APP_NAME} */,
+                          60010001/* APP_NAME */,
                       );
                   };
                   /* End PBXProject section */
@@ -201,7 +194,7 @@ jobs:
                       isa = PBXSourcesBuildPhase;
                       buildActionMask = 2147483647;
                       files = (
-                          10010001/* ${APP_NAME}App.swift in Sources */,
+                          10010001/* APP_NAMEApp.swift in Sources */,
                           10010002/* ContentView.swift in Sources */,
                       );
                       runOnlyForDeploymentPostprocessing = 0;
@@ -214,14 +207,14 @@ jobs:
                       buildSettings = {
                           ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
                           ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-                          CODE_SIGNING_ALLOWED = NO; # Allows building without Apple Developer Certificates
+                          CODE_SIGNING_ALLOWED = NO;
                           CODE_SIGNING_REQUIRED = NO;
                           CODE_SIGN_IDENTITY = "";
                           DONT_GENERATE_INFOPLIST_FILE = YES;
-                          INFOPLIST_FILE = "${APP_NAME}/Info.plist";
+                          INFOPLIST_FILE = "APP_NAME/Info.plist";
                           LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
                           MARKETING_VERSION = 1.0;
-                          PRODUCT_BUNDLE_IDENTIFIER = "${BUNDLE_ID}";
+                          PRODUCT_BUNDLE_IDENTIFIER = "BUNDLE_TEMPLATE";
                           PRODUCT_NAME = "$(TARGET_NAME)";
                           SWIFT_VERSION = 5.0;
                           TARGETED_DEVICE_FAMILY = "1,2";
@@ -237,10 +230,10 @@ jobs:
                           CODE_SIGNING_REQUIRED = NO;
                           CODE_SIGN_IDENTITY = "";
                           DONT_GENERATE_INFOPLIST_FILE = YES;
-                          INFOPLIST_FILE = "${APP_NAME}/Info.plist";
+                          INFOPLIST_FILE = "APP_NAME/Info.plist";
                           LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
                           MARKETING_VERSION = 1.0;
-                          PRODUCT_BUNDLE_IDENTIFIER = "${BUNDLE_ID}";
+                          PRODUCT_BUNDLE_IDENTIFIER = "BUNDLE_TEMPLATE";
                           PRODUCT_NAME = "$(TARGET_NAME)";
                           SWIFT_VERSION = 5.0;
                           TARGETED_DEVICE_FAMILY = "1,2";
@@ -280,7 +273,7 @@ jobs:
                   /* End XCBuildConfiguration section */
 
                   /* Begin XCConfigurationList section */
-                  70010001/* Build configuration list for PBXNativeTarget "${APP_NAME}" */ = {
+                  70010001/* Build configuration list for PBXNativeTarget "APP_NAME" */ = {
                       isa = XCConfigurationList;
                       buildConfigurations = (
                           70010002/* Debug */,
@@ -303,6 +296,10 @@ jobs:
               rootObject = 90010001/* Project object */;
           }
           EOF
+
+          # Inject parameters cleanly using safe substitutions
+          sed -i '' "s/APP_NAME/${APP_NAME}/g" "$APP_NAME/$APP_NAME.xcodeproj/project.pbxproj"
+          sed -i '' "s/BUNDLE_TEMPLATE/${BUNDLE_ID}/g" "$APP_NAME/$APP_NAME.xcodeproj/project.pbxproj"
         shell: bash
 
       - name: Build Application using Xcode Command Line Tools
@@ -310,7 +307,6 @@ jobs:
           APP_NAME="${{ github.event.inputs.app_name }}"
           cd "$APP_NAME"
           
-          # Compile the project into an unsigned simulator/device target payload 
           xcodebuild -project "${APP_NAME}.xcodeproj" \
                      -scheme "${APP_NAME}" \
                      -configuration Release \
@@ -323,13 +319,8 @@ jobs:
         run: |
           APP_NAME="${{ github.event.inputs.app_name }}"
           
-          # Create the structure Apple devices expect for installation payloads
           mkdir -p Payload
-          
-          # Copy the .app payload out of Xcode's built products folder into the Payload directory
           cp -r /Users/runner/Library/Developer/Xcode/DerivedData/*/Build/Products/Release-iphoneos/${APP_NAME}.app Payload/
-          
-          # Compress the folder into a standard distribution package (.ipa)
           zip -r "${APP_NAME}.ipa" Payload
           
       - name: Upload Complete iOS App Artifact
