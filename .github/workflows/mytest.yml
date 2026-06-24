@@ -10,7 +10,6 @@ on:
 
 jobs:
   test-metal:
-    # Target Apple Silicon M1/M2 environments
     runs-on: macos-14
 
     steps:
@@ -26,20 +25,7 @@ jobs:
       - name: Install PyTorch and Hugging Face Transformers
         run: |
           python -m pip install --upgrade pip
-          # Standard pip torch includes native Arm64 MPS support out of the box
           pip install torch torchvision diffusers transformers accelerate
-
-      - name: Diagnostic - Verify Apple Metal Backend
-        run: |
-          python -c "
-          import torch
-          print('====================================')
-          print('    SYSTEM HARDWARE CAPABILITIES   ')
-          print('====================================')
-          print(f'Is MPS Available?: {torch.backends.mps.is_available()}')
-          print(f'Is MPS Built-in?:  {torch.backends.mps.is_built()}')
-          print('====================================')
-          "
 
       - name: Run Lightweight Inference via Metal (MPS)
         run: |
@@ -51,13 +37,15 @@ jobs:
           prompt = os.getenv("INPUT_PROMPT", "A beautiful bonsai tree")
           print(f"Generating prompt: '{prompt}'")
 
-          # segmind/tiny-sd is heavily compressed (~600MB) to stay well within the 7GB runner limit
           model_id = "segmind/tiny-sd"
           
           print("Loading model components into CPU memory...")
           pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float32)
           
-          # Force execution context strictly onto Apple Metal Framework
+          # OPTIMIZATION: Slice attention computations to save memory
+          print("Enabling attention slicing optimization...")
+          pipe.enable_attention_slicing()
+          
           if torch.backends.mps.is_available():
               device = torch.device("mps")
               print("SUCCESS: Dispatching model layers to Mac Metal GPU accelerator.")
@@ -67,7 +55,6 @@ jobs:
 
           pipe = pipe.to(device)
 
-          # Minimize steps to 15 for an incredibly rapid health-check run
           print("Starting image diffusion passes...")
           image = pipe(prompt, num_inference_steps=15).images[0]
 
@@ -79,7 +66,9 @@ jobs:
           python generate_test.py
         env:
           INPUT_PROMPT: ${{ github.event.inputs.prompt }}
-          # Keeping runtime memory clamped safely below the physical 7GB system limit
+          # FIX: Prevents the MPS backend out-of-memory panic
+          PYTORCH_MPS_HIGH_WATERMARK_RATIO: "0.0"
+          # Keep .NET limits clamped safely low if .NET tools run concurrently
           DOTNET_GCHeapHardLimit: "140000000" 
 
       - name: Upload Generated Image Artifact
