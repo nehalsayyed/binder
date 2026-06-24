@@ -27,7 +27,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           # Standard pip torch includes native Arm64 MPS support out of the box
-          pip install torch torchvision diffusers transformers accelerators
+          pip install torch torchvision diffusers transformers accelerate
 
       - name: Diagnostic - Verify Apple Metal Backend
         run: |
