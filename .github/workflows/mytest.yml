@@ -1,73 +1,91 @@
-name: Build Absolute Generic stable-diffusion.cpp (ARM64 Text-to-Video)
+name: Test Mac Metal - Tiny Diffusion
 
 on:
-  workflow_dispatch: # Allows manual trigger from the Actions tab
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'Image generation prompt'
+        required: true
+        default: 'A vibrant miniature bonsai tree sitting on top of a futuristic metal computer chip, digital art'
 
 jobs:
-  build-arm64-generic:
-    # Uses GitHub's native ARM64 Ubuntu runner
-    runs-on: ubuntu-24.04-arm
+  test-metal:
+    # Target Apple Silicon M1/M2 environments
+    runs-on: macos-14
 
     steps:
-      - name: Checkout Code Base
+      - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          repository: leejet/stable-diffusion.cpp
-          submodules: 'recursive' # Pulls matching latest 5D video tensor updates
-          fetch-depth: 0
+          python-version: '3.11'
+          cache: 'pip'
 
-      - name: Install System Build Dependencies
+      - name: Install PyTorch and Hugging Face Transformers
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake git pkg-config
+          python -m pip install --upgrade pip
+          # Standard pip torch includes native Arm64 MPS support out of the box
+          pip install torch torchvision diffusers transformers accelerators
 
-      - name: Configure CMake for Absolute Generic ARM64 Execution
+      - name: Diagnostic - Verify Apple Metal Backend
         run: |
-          mkdir build
-          cd build
+          python -c "
+          import torch
+          print('====================================')
+          print('    SYSTEM HARDWARE CAPABILITIES   ')
+          print('====================================')
+          print(f'Is MPS Available?: {torch.backends.mps.is_available()}')
+          print(f'Is MPS Built-in?:  {torch.backends.mps.is_built()}')
+          print('====================================')
+          "
+
+      - name: Run Lightweight Inference via Metal (MPS)
+        run: |
+          cat << 'EOF' > generate_test.py
+          import os
+          import torch
+          from diffusers import StableDiffusionPipeline
+
+          prompt = os.getenv("INPUT_PROMPT", "A beautiful bonsai tree")
+          print(f"Generating prompt: '{prompt}'")
+
+          # segmind/tiny-sd is heavily compressed (~600MB) to stay well within the 7GB runner limit
+          model_id = "segmind/tiny-sd"
           
-          # EXPLANATION OF CONSTRAINTS Bypassing Server-Leaking Extensions:
-          # -DCMAKE_SYSTEM_PROCESSOR=aarch64 overrides native cloud runner targeting.
-          # -march=armv8-a forces foundational ARM 64-bit code generation blocks only.
-          # -mtune=generic instructs compilation structures to optimize for standard mobile core distributions.
-          # -DGGML_NATIVE=OFF prevents compiler optimization sweeps from turning on unauthorized Neoverse extensions.
-          cmake .. \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
-            -DCMAKE_C_FLAGS="-march=armv8-a -mtune=generic" \
-            -DCMAKE_CXX_FLAGS="-march=armv8-a -mtune=generic" \
-            -DSD_BUILD_SHARED_LIBS=OFF \
-            -DSD_BUILD_EXAMPLES=ON \
-            -DGGML_NATIVE=OFF \
-            -DGGML_OPENMP=ON \
-            -DGGML_NEON=ON
+          print("Loading model components into CPU memory...")
+          pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float32)
+          
+          # Force execution context strictly onto Apple Metal Framework
+          if torch.backends.mps.is_available():
+              device = torch.device("mps")
+              print("SUCCESS: Dispatching model layers to Mac Metal GPU accelerator.")
+          else:
+              device = torch.device("cpu")
+              print("WARNING: Metal context unavailable. Defaulting execution back to CPU.")
 
-      - name: Compile Source Code Base
-        run: |
-          cd build
-          # Leverages runner hardware limits to compile parallel instruction segments safely
-          cmake --build . --config Release --parallel $(nproc)
+          pipe = pipe.to(device)
 
-      - name: Verify Clean Binary Format
-        run: |
-          cd build/bin
-          ls -la
-          file sd-cli
-          # Ensure there are no lingering dynamic compilation block warnings
-          ldd sd-cli || true
+          # Minimize steps to 15 for an incredibly rapid health-check run
+          print("Starting image diffusion passes...")
+          image = pipe(prompt, num_inference_steps=15).images[0]
 
-      - name: Package Standalone Binaries
-        run: |
-          mkdir -p release-package
-          cp build/bin/sd-cli release-package/
-          cp build/bin/sd-server release-package/
-          cd release-package
-          tar -czvf sdcpp-linux-arm64-absolute-generic.tar.gz sd-cli sd-server
+          output_name = "metal_test_output.png"
+          image.save(output_name)
+          print(f"Image successfully generated and saved as {output_name}!")
+          EOF
 
-      - name: Upload Build Artifact Package
+          python generate_test.py
+        env:
+          INPUT_PROMPT: ${{ github.event.inputs.prompt }}
+          # Keeping runtime memory clamped safely below the physical 7GB system limit
+          DOTNET_GCHeapHardLimit: "140000000" 
+
+      - name: Upload Generated Image Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sdcpp-linux-arm64-absolute-generic
-          path: release-package/sdcpp-linux-arm64-absolute-generic.tar.gz
-          retention-days: 5
+          name: mac-metal-generated-image
+          path: metal_test_output.png
+          retention-days: 3
           
