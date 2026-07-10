@@ -9,6 +9,6 @@ jobs:
     steps:
       - name: running
         run: |
-          winget install fastfetch -y
+          winget install -e --id Fastfetch-cli.Fastfetch
           fastfetch
           
