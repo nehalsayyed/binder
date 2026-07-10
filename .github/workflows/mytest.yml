@@ -8,7 +8,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Install Fastfetch
-        run: winget install -e --id Fastfetch-cli.Fastfetch
+        run: winget install -e --id Fastfetch-cli.Fastfetch -y
 
       - name: Run Fastfetch
         run: fastfetch
