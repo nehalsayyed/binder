@@ -9,5 +9,5 @@ jobs:
     steps:
       - name: running
         run: |
-          sudo apt update && sudo apt upgrade -y && sudo apt install fastfetch -y && fastfetch
+          sudo apt update && sudo apt upgrade -y && sudo apt install neofetch -y && neofetch
           
