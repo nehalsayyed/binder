@@ -5,9 +5,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: running
         run: |
-          sudo apt update -y && sudo apt install neofetch -y && neofetch
+          winget install fastfetch -y
+          fastfetch
           
