@@ -9,5 +9,5 @@ jobs:
     steps:
       - name: running
         run: |
-          sudo apt update && sudo apt upgrade -y && sudo apt install neofetch -y && neofetch
+          sudo apt update -y && sudo apt install neofetch -y && neofetch
           
