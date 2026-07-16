@@ -4,27 +4,27 @@ on: workflow_dispatch
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: emscripten/emsdk:3.1.56 # Exact standard toolchain container
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. Install the required version of Qt for WebAssembly
-      - name: Install Qt for WASM
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.7.2'      # Set your exact target Qt version here
-          target: 'wasm'        # Tells it to download the Wasm packages
-          arch: 'wasm_32'       # Architecture target for Emscripten compilation
+      - name: Install Qt WebAssembly dependencies
+        run: |
+          apt-get update && apt-get install -y wget p7zip-full
+          # Directly download the precompiled Qt WASM binaries from an archive link
+          wget https://download.qt.io/online/qtsdkrepository/linux_x64/wasm/qt6_672_wasm/qt.qt6.672.wasm_32/6.7.2-0-202406180749meta.7z
+          7z x 6.7.2-0-202406180749meta.7z -o/opt/qt
 
-      # 2. Build the application using the injected environments
-      - name: Build Application
+      - name: Compile Application
         run: |
           mkdir build && cd build
-          # The install action automatically exposes `qt-cmake` to the path
-          qt-cmake .. -DCMAKE_BUILD_TYPE=Release
+          # Use the absolute path to the downloaded Qt cmake wrapper
+          /opt/qt/bin/qt-cmake .. -DCMAKE_BUILD_TYPE=Release
           cmake --build . --parallel $(nproc)
 
-      # 3. Zip or bundle the outputs
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
