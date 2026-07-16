@@ -1,15 +1,29 @@
-name: Build
-
-on:
-  workflow_dispatch:
+name: Build Qt WASM
+on: workflow_dispatch
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
-      - name: Install Fastfetch
-        run: winget install -e --id Fastfetch-cli.Fastfetch -y
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Run Fastfetch
-        run: fastfetch
-        
+      # Using a prebuilt Qt + Emscripten docker container saves massive amounts of time
+      - name: Build Application
+        uses: addnab/docker-run-action@v3
+        with:
+          image: stateoftheartio/qt6:6.7-wasm # Update version as required
+          options: -v ${{ github.workspace }}:/workspace
+          run: |
+            cd /workspace
+            mkdir build && cd build
+            # Configure and build using Qt's CMake wrapper for Emscripten
+            qt-cmake .. -DCMAKE_BUILD_TYPE=Release
+            cmake --build . --parallel $(nproc)
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: qt-wasm-output
+          path: build/
+          
