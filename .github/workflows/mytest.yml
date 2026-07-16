@@ -8,19 +8,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Using a prebuilt Qt + Emscripten docker container saves massive amounts of time
-      - name: Build Application
-        uses: addnab/docker-run-action@v3
+      # 1. Install the required version of Qt for WebAssembly
+      - name: Install Qt for WASM
+        uses: jurplel/install-qt-action@v4
         with:
-          image: stateoftheartio/qt6:6.7-wasm # Update version as required
-          options: -v ${{ github.workspace }}:/workspace
-          run: |
-            cd /workspace
-            mkdir build && cd build
-            # Configure and build using Qt's CMake wrapper for Emscripten
-            qt-cmake .. -DCMAKE_BUILD_TYPE=Release
-            cmake --build . --parallel $(nproc)
+          version: '6.7.2'      # Set your exact target Qt version here
+          target: 'wasm'        # Tells it to download the Wasm packages
+          arch: 'wasm_32'       # Architecture target for Emscripten compilation
 
+      # 2. Build the application using the injected environments
+      - name: Build Application
+        run: |
+          mkdir build && cd build
+          # The install action automatically exposes `qt-cmake` to the path
+          qt-cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake --build . --parallel $(nproc)
+
+      # 3. Zip or bundle the outputs
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
