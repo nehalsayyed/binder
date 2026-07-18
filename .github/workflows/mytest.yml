@@ -4,30 +4,9 @@ on: workflow_dispatch
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: emscripten/emsdk:3.1.56 # Exact standard toolchain container
+ 
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Qt WebAssembly dependencies
+      - name: Run
         run: |
-          apt-get update && apt-get install -y wget p7zip-full
-          # Directly download the precompiled Qt WASM binaries from an archive link
-          wget https://download.qt.io/online/qtsdkrepository/linux_x64/wasm/qt6_672_wasm/qt.qt6.672.wasm_32/6.7.2-0-202406180749meta.7z
-          7z x 6.7.2-0-202406180749meta.7z -o/opt/qt
-
-      - name: Compile Application
-        run: |
-          mkdir build && cd build
-          # Use the absolute path to the downloaded Qt cmake wrapper
-          /opt/qt/bin/qt-cmake .. -DCMAKE_BUILD_TYPE=Release
-          cmake --build . --parallel $(nproc)
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: qt-wasm-output
-          path: build/
-          
+          docker run -t nehal .
