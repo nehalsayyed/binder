@@ -1,12 +1,48 @@
-name: Build Qt WASM
-on: workflow_dispatch
+name: Generate React Native New Architecture Project
+
+on:
+  workflow_dispatch:
+    inputs:
+      projectName:
+        description: 'React Native Project Name'
+        required: true
+        default: 'MyNewArchApp'
 
 jobs:
-  build:
+  create-project:
     runs-on: ubuntu-latest
- 
-    
+
     steps:
-      - name: Run
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generate React Native Project
         run: |
-          docker run -t nehal .
+          echo "Generating project: ${{ github.event.inputs.projectName }}..."
+          # React Native 0.74+ has New Architecture enabled by default
+          npx @react-native-community/cli@latest init ${{ github.event.inputs.projectName }} --skip-install
+
+      - name: Clean project (Remove node_modules, build, and git artifacts)
+        run: |
+          cd ${{ github.event.inputs.projectName }}
+          
+          # Remove heavy/unwanted folders if generated
+          rm -rf node_modules
+          rm -rf .git
+          rm -rf android/.gradle android/app/build
+          rm -rf ios/Pods ios/build
+          
+          echo "Cleanup finished!"
+
+      - name: Zip project directory
+        run: |
+          zip -r ${{ github.event.inputs.projectName }}.zip ${{ github.event.inputs.projectName }}
+
+      - name: Upload Clean Project Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.inputs.projectName }}-clean
+          path: ${{ github.event.inputs.projectName }}.zip
+          
