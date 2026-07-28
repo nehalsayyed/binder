@@ -7,7 +7,7 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Android initialization settings
+  // Android initialization settings ('ic_launcher' comes built-in with Flutter apps)
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -24,7 +24,7 @@ void main() async {
     iOS: initializationSettingsDarwin,
   );
 
-  // FIX: Passed as a positional argument (no "initializationSettings:")
+  // Positional initializationSettings
   await flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
   );
@@ -82,11 +82,12 @@ class _NotificationHomePageState extends State<NotificationHomePage> {
     const NotificationDetails platformDetails =
         NotificationDetails(android: androidDetails);
 
-    // FIX: Using named parameters for .show()
+    // EXACT SIGNATURE:
+    // .show(id, title, body, notificationDetails: details)
     await flutterLocalNotificationsPlugin.show(
-      id: 0,
-      title: 'Hello from Flutter!',
-      body: 'This is a native system notification triggered locally.',
+      0,
+      'Hello from Flutter!',
+      'This is a native system notification triggered locally.',
       notificationDetails: platformDetails,
     );
   }
