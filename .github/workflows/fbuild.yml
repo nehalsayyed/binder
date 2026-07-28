@@ -34,7 +34,7 @@ jobs:
           cd notification_app
           
           # Add local notifications dependency
-          flutter pub add flutter_local_notifications
+          flutter pub add country_picker flutter_localizations
           
           # Replace lib/main.dart with root main.dart
           cp ../main.dart lib/main.dart
