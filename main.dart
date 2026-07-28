@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-// Create a global instance of the plugin
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
@@ -25,9 +24,9 @@ void main() async {
     iOS: initializationSettingsDarwin,
   );
 
-  // FIX: Using named parameter initializationSettings:
+  // FIX: Passed as a positional argument (no "initializationSettings:")
   await flutterLocalNotificationsPlugin.initialize(
-    initializationSettings: initializationSettings,
+    initializationSettings,
   );
 
   runApp(const MyApp());
@@ -63,7 +62,6 @@ class _NotificationHomePageState extends State<NotificationHomePage> {
     _requestAndroidPermission();
   }
 
-  // Request Android 13+ (API level 33) notification permission
   Future<void> _requestAndroidPermission() async {
     final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
         flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
@@ -71,7 +69,6 @@ class _NotificationHomePageState extends State<NotificationHomePage> {
     await androidImplementation?.requestNotificationsPermission();
   }
 
-  // Trigger a native system notification
   Future<void> _showNotification() async {
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'default_channel_id',
@@ -85,7 +82,7 @@ class _NotificationHomePageState extends State<NotificationHomePage> {
     const NotificationDetails platformDetails =
         NotificationDetails(android: androidDetails);
 
-    // FIX: Using named parameters (id, title, body, notificationDetails)
+    // FIX: Using named parameters for .show()
     await flutterLocalNotificationsPlugin.show(
       id: 0,
       title: 'Hello from Flutter!',
