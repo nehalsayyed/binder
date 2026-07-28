@@ -25,7 +25,10 @@ void main() async {
     iOS: initializationSettingsDarwin,
   );
 
-  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  // FIX: Using named parameter initializationSettings:
+  await flutterLocalNotificationsPlugin.initialize(
+    initializationSettings: initializationSettings,
+  );
 
   runApp(const MyApp());
 }
@@ -82,11 +85,12 @@ class _NotificationHomePageState extends State<NotificationHomePage> {
     const NotificationDetails platformDetails =
         NotificationDetails(android: androidDetails);
 
+    // FIX: Using named parameters (id, title, body, notificationDetails)
     await flutterLocalNotificationsPlugin.show(
-      0,
-      'Hello from Flutter!',
-      'This is a native system notification triggered locally.',
-      platformDetails,
+      id: 0,
+      title: 'Hello from Flutter!',
+      body: 'This is a native system notification triggered locally.',
+      notificationDetails: platformDetails,
     );
   }
 
