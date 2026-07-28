@@ -1,0 +1,54 @@
+name: Build Flutter APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repository code containing main.dart
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Set up Java Environment
+      - name: Set up Java (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # 3. Set up Flutter SDK
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      # 4. Initialize fresh Flutter project & add dependencies
+      - name: Setup Flutter App & Copy main.dart
+        run: |
+          # Create a fresh Flutter app shell
+          flutter create --org com.example notification_app
+          cd notification_app
+          
+          # Add local notifications dependency
+          flutter pub add flutter_local_notifications
+          
+          # Replace lib/main.dart with root main.dart
+          cp ../main.dart lib/main.dart
+
+      # 5. Build Debug APK
+      - name: Build Android APK
+        run: |
+          cd notification_app
+          flutter build apk --debug
+
+      # 6. Upload APK as GitHub Action Artifact
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-notification-apk
+          path: notification_app/build/app/outputs/flutter-apk/app-debug.apk
+          
