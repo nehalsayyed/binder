@@ -1,124 +1,128 @@
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Android initialization settings ('ic_launcher' comes built-in with Flutter apps)
-  const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
-
-  // iOS initialization settings
-  const DarwinInitializationSettings initializationSettingsDarwin =
-      DarwinInitializationSettings(
-    requestAlertPermission: true,
-    requestBadgePermission: true,
-    requestSoundPermission: true,
-  );
-
-  const InitializationSettings initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-    iOS: initializationSettingsDarwin,
-  );
-
-  // Positional initializationSettings
-  await flutterLocalNotificationsPlugin.initialize(
-    initializationSettings,
-  );
-
-  runApp(const MyApp());
-}
+void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Native Notification Demo',
+      title: 'Demo for country picker package',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const NotificationHomePage(),
+      supportedLocales: [
+        const Locale('en'),
+        const Locale('ar'),
+        const Locale('es'),
+        const Locale('de'),
+        const Locale('fr'),
+        const Locale('el'),
+        const Locale('et'),
+        const Locale('nb'),
+        const Locale('nn'),
+        const Locale('pl'),
+        const Locale('pt'),
+        const Locale('ru'),
+        const Locale('hi'),
+        const Locale('ne'),
+        const Locale('uk'),
+        const Locale('hr'),
+        const Locale('tr'),
+        const Locale('lv'),
+        const Locale('lt'),
+        const Locale('ku'),
+        const Locale('nl'),
+        const Locale('it'),
+        const Locale('ko'),
+        const Locale('ja'),
+        const Locale('id'),
+        const Locale('cs'),
+        const Locale('ht'),
+        const Locale('sk'),
+        const Locale('ro'),
+        const Locale('bg'),
+        const Locale('ca'),
+        const Locale('he'),
+        const Locale('fa'),
+        const Locale('da'),
+        const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'), // Generic Simplified Chinese 'zh_Hans'
+        const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'), // Generic traditional Chinese 'zh_Hant'
+      ],
+      localizationsDelegates: [
+        CountryLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
+      home: HomePage(),
     );
   }
 }
 
-class NotificationHomePage extends StatefulWidget {
-  const NotificationHomePage({super.key});
-
-  @override
-  State<NotificationHomePage> createState() => _NotificationHomePageState();
-}
-
-class _NotificationHomePageState extends State<NotificationHomePage> {
-  @override
-  void initState() {
-    super.initState();
-    _requestAndroidPermission();
-  }
-
-  Future<void> _requestAndroidPermission() async {
-    final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-        flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-    await androidImplementation?.requestNotificationsPermission();
-  }
-
-  Future<void> _showNotification() async {
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'default_channel_id',
-      'General Notifications',
-      channelDescription: 'Channel for testing local native notifications',
-      importance: Importance.max,
-      priority: Priority.high,
-      ticker: 'ticker',
-    );
-
-    const NotificationDetails platformDetails =
-        NotificationDetails(android: androidDetails);
-
-    // EXACT SIGNATURE:
-    // .show(id, title, body, notificationDetails: details)
-    await flutterLocalNotificationsPlugin.show(
-      0,
-      'Hello from Flutter!',
-      'This is a native system notification triggered locally.',
-      notificationDetails: platformDetails,
-    );
-  }
+class HomePage extends StatelessWidget {
+  HomePage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Flutter Native Notification'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
+      appBar: AppBar(title: Text('Demo for country picker')),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Icon(Icons.notifications_active, size: 80, color: Colors.deepPurple),
-            const SizedBox(height: 20),
-            const Text(
-              'Press the button to trigger a system notification',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton.icon(
-              onPressed: _showNotification,
-              icon: const Icon(Icons.send),
-              label: const Text('Trigger Notification'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: ElevatedButton(
+          onPressed: () {
+            showCountryPicker(
+              context: context,
+              //Optional.  Can be used to exclude(remove) one ore more country from the countries list (optional).
+              exclude: <String>['KN', 'MF'],
+              favorite: <String>['SE'],
+              //Optional. Shows phone code before the country name.
+              showPhoneCode: true,
+              showDragHandle: false,
+              onSelect: (Country country) {
+                print('Select country: ${country.displayName}');
+              },
+              // Optional. Sheet moves when keyboard opens.
+              moveAlongWithKeyboard: false,
+              // Optional. Sets the theme for the country list picker.
+              countryListTheme: CountryListThemeData(
+                // Optional. Sets the border radius for the bottomsheet.
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(40.0),
+                  topRight: Radius.circular(40.0),
+                ),
+                // Optional. Styles the search field.
+                inputDecoration: InputDecoration(
+                  labelText: 'Search',
+                  hintText: 'Start typing to search',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: const Color(0xFF8C98A8).withValues(alpha: 0.2),
+                    ),
+                  ),
+                ),
+                // Optional. Styles the text in the search field
+                searchTextStyle: TextStyle(
+                  color: Colors.blue,
+                  fontSize: 18,
+                ),
               ),
-            ),
-          ],
+              // Optional. Custom list header above search bar
+              // header: Padding(
+              //   padding: const EdgeInsets.only(top: 10.0, bottom: 10.0, left: 20.0, right: 20.0),
+              //   child: const Text(
+              //     'Select your country',
+              //     style: TextStyle(
+              //       fontSize: 22,
+              //       fontWeight: FontWeight.bold,
+              //     ),
+              //   ),
+              // ),
+            );
+          },
+          child: const Text('Show country picker'),
         ),
       ),
     );
