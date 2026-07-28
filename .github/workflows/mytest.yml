@@ -1,48 +1,58 @@
-name: Generate React Native New Architecture Project
+name: Build Cordova APK
 
 on:
-  workflow_dispatch:
-    inputs:
-      projectName:
-        description: 'React Native Project Name'
-        required: true
-        default: 'MyNewArchApp'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions UI
 
 jobs:
-  create-project:
+  build-android:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout your main repo content
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Set up Java Environment (Required for Android/Gradle builds)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # 3. Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
-      - name: Generate React Native Project
-        run: |
-          echo "Generating project: ${{ github.event.inputs.projectName }}..."
-          # React Native 0.74+ has New Architecture enabled by default
-          npx @react-native-community/cli@latest init ${{ github.event.inputs.projectName }} --skip-install
+      # 4. Install Cordova globally
+      - name: Install Cordova CLI
+        run: npm install -g cordova
 
-      - name: Clean project (Remove node_modules, build, and git artifacts)
+      # 5. Initialize new Cordova project and copy root index.html
+      - name: Initialize Cordova Project
         run: |
-          cd ${{ github.event.inputs.projectName }}
+          # Create a fresh project in a temporary directory
+          cordova create myApp com.example.app "MyCordovaApp"
+          cd myApp
           
-          # Remove heavy/unwanted folders if generated
-          rm -rf node_modules
-          rm -rf .git
-          rm -rf android/.gradle android/app/build
-          rm -rf ios/Pods ios/build
+          # Add the Android platform
+          cordova platform add android
           
-          echo "Cleanup finished!"
+          # Copy your root index.html into the Cordova www folder
+          cp ../index.html www/index.html
 
-      - name: Zip project directory
+      # 6. Build the APK
+      - name: Build Android APK
         run: |
-          zip -r ${{ github.event.inputs.projectName }}.zip ${{ github.event.inputs.projectName }}
+          cd myApp
+          cordova build android --packageType=apk --no-telemetry
 
-      - name: Upload Clean Project Artifact
+      # 7. Locate and upload generated APK as an Action Artifact
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.projectName }}-clean
-          path: ${{ github.event.inputs.projectName }}.zip
+          name: cordova-debug-apk
+          path: myApp/platforms/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
           
