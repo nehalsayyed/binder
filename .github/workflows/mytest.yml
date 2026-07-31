@@ -1,4 +1,4 @@
-name: Build Sample Zig Static Binary for Termux
+name: Build Android Activity Example APK
 
 on:
   workflow_dispatch:
@@ -8,27 +8,47 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Clone the public repository manually
+      # 1. Clone the rust-mobile/android-activity repository manually
       - name: Clone Repository
         run: |
-          git clone https://github.com/daytonaio-experiments/sample-zig.git .
+          git clone https://github.com/rust-mobile/android-activity.git .
 
-      # 2. Set up Zig compiler directly from official releases
-      - name: Setup Zig
-        uses: goto-bus-stop/setup-zig@v2
+      # 2. Set up Java JDK 17 (Required for Android build tools)
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
         with:
-          version: 0.13.0
+          java-version: '17'
+          distribution: 'temurin'
 
-      # 3. Build standalone static binary targeting ARM64 Linux / Android (Termux)
-      - name: Build Static Binary for Termux (aarch64-linux-musl)
+      # 3. Set up Rust toolchain and add Android target architectures
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android, x86_64-linux-android
+
+      # 4. Set up Android SDK & NDK
+      - name: Setup Android NDK
+        uses: nsetup/setup-android-ndk@v1
+        with:
+          ndk-version: r26b
+
+      # 5. Install cargo-apk tool to package Rust binaries into APKs
+      - name: Install cargo-apk
+        run: cargo install cargo-apk
+
+      # 6. Build the example APK inside the examples workspace folder
+      - name: Build Example APK
         run: |
-          zig build -Dtarget=aarch64-linux-musl -Doptimize=ReleaseSafe --summary all
+          cd examples/na-agdk-game
+          cargo apk build --release
 
-      # 4. Upload the built static executable as an artifact
-      - name: Upload Binary Artifact
+      # 7. Upload the compiled APK as an artifact
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sample-zig-termux-aarch64
-          path: zig-out/bin/sample-zig-wip
+          name: android-activity-example-apk
+          path: |
+            **/target/release/apk/*.apk
+          if-no-files-found: error
           retention-days: 7
           
