@@ -1,58 +1,63 @@
-name: Build Cordova APK
+name: Build Snapchat Valdi Example APK
 
 on:
-  workflow_dispatch: # Allows manual trigger from GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Type of build'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
 
 jobs:
-  build-android:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout your main repo content
+      # 1. Checkout the repository
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive # Fetches submodules if Snapchat Valdi uses any external components
 
-      # 2. Set up Java Environment (Required for Android/Gradle builds)
-      - name: Set up JDK 17
+      # 2. Set up Java JDK 17 (Required for modern Gradle & Android builds)
+      - name: Set up Java JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
           java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
 
-      # 3. Set up Node.js
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      # 3. Set up Android SDK
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      # 4. Install Cordova globally
-      - name: Install Cordova CLI
-        run: npm install -g cordova
+      # 4. Make Gradle wrapper executable
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
 
-      # 5. Initialize new Cordova project and copy root index.html
-      - name: Initialize Cordova Project
-        run: |
-          # Create a fresh project in a temporary directory
-          cordova create myApp com.example.app "MyCordovaApp"
-          cd myApp
-          
-          # Add the Android platform
-          cordova platform add android
-          
-          # Copy your root index.html into the Cordova www folder
-          cp ../index.html www/index.html
+      # 5. Initialize project dependencies and sync Gradle
+      - name: Initialize Snapchat Valdi Dependencies
+        run: ./gradlew tasks --stacktrace
 
-      # 6. Build the APK
-      - name: Build Android APK
-        run: |
-          cd myApp
-          cordova build android --packageType=apk --no-telemetry
+      # 6. Build the Example APK based on dispatch input
+      - name: Build Debug APK
+        if: ${{ inputs.build_type == 'debug' }}
+        run: ./gradlew assembleDebug
 
-      # 7. Locate and upload generated APK as an Action Artifact
+      - name: Build Release APK
+        if: ${{ inputs.build_type == 'release' }}
+        run: ./gradlew assembleRelease
+
+      # 7. Upload the compiled APK as a downloadable artifact
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cordova-debug-apk
-          path: myApp/platforms/android/app/build/outputs/apk/debug/*.apk
+          name: snapchat-valdi-example-${{ inputs.build_type }}
+          path: |
+            **/build/outputs/apk/**/*.apk
           if-no-files-found: error
-          
+          retention-days: 7
