@@ -13,9 +13,9 @@ jobs:
         run: |
           git clone https://github.com/daytonaio-experiments/sample-zig.git .
 
-      # 2. Set up Zig compiler
+      # 2. Set up Zig compiler directly from official releases
       - name: Setup Zig
-        uses: mlugg/setup-zig@v1
+        uses: goto-bus-stop/setup-zig@v2
         with:
           version: 0.13.0
 
@@ -31,3 +31,4 @@ jobs:
           name: sample-zig-termux-aarch64
           path: zig-out/bin/sample-zig-wip
           retention-days: 7
+          
