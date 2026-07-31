@@ -1,4 +1,4 @@
-name: Build Android Activity Example APK
+name: NativeScript Example APK Build
 
 on:
   workflow_dispatch:
@@ -8,47 +8,86 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Clone the rust-mobile/android-activity repository manually
-      - name: Clone Repository
-        run: |
-          git clone https://github.com/rust-mobile/android-activity.git .
+      # 1. Set up Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-      # 2. Set up Java JDK 17 (Required for Android build tools)
+      # 2. Set up Java JDK 17 (Required for Android Builds)
       - name: Set up Java JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 3. Set up Rust toolchain and add Android target architectures
-      - name: Setup Rust Toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android, x86_64-linux-android
+      # 3. Set up Android SDK
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      # 4. Set up Android SDK & NDK
-      - name: Setup Android NDK
-        uses: nsetup/setup-android-ndk@v1
-        with:
-          ndk-version: r26b
+      # 4. Install NativeScript CLI globally
+      - name: Install NativeScript CLI
+        run: npm install -g nativescript
 
-      # 5. Install cargo-apk tool to package Rust binaries into APKs
-      - name: Install cargo-apk
-        run: cargo install cargo-apk
-
-      # 6. Build the example APK inside the examples workspace folder
-      - name: Build Example APK
+      # 5. Initialize a new NativeScript JavaScript/TypeScript Project
+      - name: Init NativeScript Project
         run: |
-          cd examples/na-agdk-game
-          cargo apk build --release
+          ns create ns-example-app --template @nativescript/template-blank-ts --no-interactive
+          cd ns-example-app
+          ns prepare android
 
-      # 7. Upload the compiled APK as an artifact
+      # 6. Inject the single-file NativeScript layout/script directly into the root app folder
+      - name: Create NativeScript Example Code
+        run: |
+          cd ns-example-app/app
+
+          # Write single-file layout (main-page.xml)
+          cat << 'EOF' > main-page.xml
+          <Page xmlns="http://schemas.nativescript.org/tns.xsd" loaded="pageLoaded">
+              <ActionBar title="NativeScript App" class="action-bar" />
+              <StackLayout class="p-20" verticalAlignment="center">
+                  <Label text="Hello from Single-File NativeScript!" class="h1 text-center" textWrap="true" />
+                  <Button text="Tap Me" tap="onTap" class="btn btn-primary" marginTop="20" />
+                  <Label id="counterLabel" text="Taps: 0" class="h2 text-center" marginTop="10" />
+              </StackLayout>
+          </Page>
+          EOF
+
+          # Write single-file component logic (main-page.ts)
+          cat << 'EOF' > main-page.ts
+          import { EventData, Page, View } from '@nativescript/core';
+
+          let tapCount = 0;
+
+          export function pageLoaded(args: EventData) {
+              const page = <Page>args.object;
+          }
+
+          export function onTap(args: EventData) {
+              const button = <View>args.object;
+              const page = button.page;
+              tapCount++;
+              
+              const label = page.getViewById('counterLabel') as any;
+              if (label) {
+                  label.text = `Taps: ${tapCount}`;
+              }
+          }
+          EOF
+
+      # 7. Build Debug APK using NativeScript
+      - name: Build Android APK
+        run: |
+          cd ns-example-app
+          ns build android --env.aot --no-hmr
+
+      # 8. Upload the built APK as a runnable artifact
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-activity-example-apk
+          name: nativescript-example-apk
           path: |
-            **/target/release/apk/*.apk
+            ns-example-app/platforms/android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 7
           
