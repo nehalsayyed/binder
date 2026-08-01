@@ -1,4 +1,4 @@
-name: NativeScript Example APK Build
+name: Build MAUI ARM64 APK
 
 on:
   workflow_dispatch:
@@ -8,86 +8,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Set up Node.js environment
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      # 1. Checkout repository
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      # 2. Set up Java JDK 17 (Required for Android Builds)
+      # 2. Setup .NET 8 SDK
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # 3. Set up Java JDK 17 (Required for Android builds)
       - name: Set up Java JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 3. Set up Android SDK
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # 4. Install .NET MAUI Android Workload
+      - name: Install MAUI Workload
+        run: dotnet workload install maui-android
 
-      # 4. Install NativeScript CLI globally
-      - name: Install NativeScript CLI
-        run: npm install -g nativescript
-
-      # 5. Initialize a new NativeScript JavaScript/TypeScript Project
-      - name: Init NativeScript Project
+      # 5. Clean & Scaffold a new .NET MAUI app
+      - name: Generate New MAUI Project
         run: |
-          ns create ns-example-app --template @nativescript/template-blank-ts --no-interactive
-          cd ns-example-app
-          ns prepare android
+          rm -rf MauiExampleApp
+          dotnet new maui -n MauiExampleApp
 
-      # 6. Inject the single-file NativeScript layout/script directly into the root app folder
-      - name: Create NativeScript Example Code
+      # 6. Build ARM64 Android APK
+      - name: Build MAUI ARM64 APK
         run: |
-          cd ns-example-app/app
+          cd MauiExampleApp
+          dotnet build -c Release -f net8.0-android -p:RuntimeIdentifier=android-arm64 -p:AndroidPackageFormat=apk
 
-          # Write single-file layout (main-page.xml)
-          cat << 'EOF' > main-page.xml
-          <Page xmlns="http://schemas.nativescript.org/tns.xsd" loaded="pageLoaded">
-              <ActionBar title="NativeScript App" class="action-bar" />
-              <StackLayout class="p-20" verticalAlignment="center">
-                  <Label text="Hello from Single-File NativeScript!" class="h1 text-center" textWrap="true" />
-                  <Button text="Tap Me" tap="onTap" class="btn btn-primary" marginTop="20" />
-                  <Label id="counterLabel" text="Taps: 0" class="h2 text-center" marginTop="10" />
-              </StackLayout>
-          </Page>
-          EOF
-
-          # Write single-file component logic (main-page.ts)
-          cat << 'EOF' > main-page.ts
-          import { EventData, Page, View } from '@nativescript/core';
-
-          let tapCount = 0;
-
-          export function pageLoaded(args: EventData) {
-              const page = <Page>args.object;
-          }
-
-          export function onTap(args: EventData) {
-              const button = <View>args.object;
-              const page = button.page;
-              tapCount++;
-              
-              const label = page.getViewById('counterLabel') as any;
-              if (label) {
-                  label.text = `Taps: ${tapCount}`;
-              }
-          }
-          EOF
-
-      # 7. Build Debug APK using NativeScript
-      - name: Build Android APK
-        run: |
-          cd ns-example-app
-          ns build android --env.aot --no-hmr
-
-      # 8. Upload the built APK as a runnable artifact
-      - name: Upload APK Artifact
+      # 7. Upload ONLY the compiled ARM64 APK artifact
+      - name: Upload ARM64 APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nativescript-example-apk
-          path: |
-            ns-example-app/platforms/android/app/build/outputs/apk/**/*.apk
+          name: maui-arm64-example-apk
+          path: MauiExampleApp/bin/Release/net8.0-android/android-arm64/*-Signed.apk
           if-no-files-found: error
           retention-days: 7
           
