@@ -23,22 +23,18 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      # 3. Setup Java JDK (Required for Gradle build)
-      - name: Set up Java JDK 17
+      # 3. Setup Java JDK 21
+      - name: Set up Java JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
 
-      # 4. Install dependencies & Bundle web assets into a www/ folder
+      # 4. Install dependencies & Bundle web assets into www/
       - name: Install dependencies and stage web dir
         run: |
           npm ci
-          
-          # Create a dedicated web distribution folder
           mkdir www
-          
-          # Copy essential jspaint files into the web folder
           cp -r src lib styles images audio localization help *.html manifest.webmanifest www/ || true
           cp package.json index.html www/
 
@@ -47,25 +43,32 @@ jobs:
         run: |
           npm install @capacitor/core
           npm install -D @capacitor/cli @capacitor/android
-          
-          # Initialize capacitor targeting the created www folder
           npx cap init "JS Paint" "app.jspaint.mobile" --web-dir "www"
-          
-          # Add the native Android platform shell
           npx cap add android
 
-      # 6. Sync web files to the Android project
+      # 6. Fix Duplicate Kotlin Classes (kotlin-stdlib vs kotlin-stdlib-jdk8)
+      - name: Patch Gradle Duplicate Classes
+        run: |
+          echo "configurations.all {
+              resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+                  if (details.requested.group == 'org.jetbrains.kotlin' && details.requested.name.startsWith('kotlin-stdlib')) {
+                      details.useVersion '1.8.22'
+                  }
+              }
+          }" >> android/app/build.gradle
+
+      # 7. Sync web files to Android project
       - name: Capacitor Sync
         run: npx cap sync android
 
-      # 7. Build debug APK using Gradle
+      # 8. Build debug APK using Gradle
       - name: Build Android Debug APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      # 8. Upload APK as a downloadable Artifact
+      # 9. Upload APK as a downloadable Artifact
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
