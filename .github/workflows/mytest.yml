@@ -12,11 +12,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Setup .NET 8 SDK
+      # 2. Setup .NET 9 SDK
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '9.0.x'
 
       # 3. Set up Java JDK 17 (Required for Android builds)
       - name: Set up Java JDK 17
@@ -29,24 +29,30 @@ jobs:
       - name: Install MAUI Workload
         run: dotnet workload install maui-android
 
-      # 5. Clean & Scaffold a new .NET MAUI app
+      # 5. Clean & Scaffold a new .NET 9 MAUI app
       - name: Generate New MAUI Project
         run: |
           rm -rf MauiExampleApp
-          dotnet new maui -n MauiExampleApp
+          dotnet new maui -n MauiExampleApp -f net9.0
 
-      # 6. Build ARM64 Android APK
+      # 6. Restore dependencies explicitly
+      - name: Restore MAUI Project
+        run: |
+          cd MauiExampleApp
+          dotnet restore -f net9.0-android
+
+      # 7. Build ARM64 Android APK
       - name: Build MAUI ARM64 APK
         run: |
           cd MauiExampleApp
-          dotnet build -c Release -f net8.0-android -p:RuntimeIdentifier=android-arm64 -p:AndroidPackageFormat=apk
+          dotnet build -c Release -f net9.0-android -p:RuntimeIdentifier=android-arm64 -p:AndroidPackageFormat=apk
 
-      # 7. Upload ONLY the compiled ARM64 APK artifact
+      # 8. Upload ONLY the compiled ARM64 APK artifact
       - name: Upload ARM64 APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: maui-arm64-example-apk
-          path: MauiExampleApp/bin/Release/net8.0-android/android-arm64/*-Signed.apk
+          path: MauiExampleApp/bin/Release/net9.0-android/android-arm64/*-Signed.apk
           if-no-files-found: error
           retention-days: 7
           
