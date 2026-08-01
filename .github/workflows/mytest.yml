@@ -12,47 +12,35 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Setup .NET 9 SDK
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-
-      # 3. Set up Java JDK 17 (Required for Android builds)
+      # 2. Setup Java JDK 17 (Required for Android builds)
       - name: Set up Java JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 4. Install .NET MAUI Android Workload
+      # 3. Install .NET MAUI Android Workload for the installed SDK
       - name: Install MAUI Workload
         run: dotnet workload install maui-android
 
-      # 5. Clean & Scaffold a new .NET 9 MAUI app
+      # 4. Clean & Scaffold a new .NET MAUI app
       - name: Generate New MAUI Project
         run: |
           rm -rf MauiExampleApp
-          dotnet new maui -n MauiExampleApp -f net9.0
+          dotnet new maui -n MauiExampleApp --no-restore
 
-      # 6. Restore dependencies explicitly
-      - name: Restore MAUI Project
-        run: |
-          cd MauiExampleApp
-          dotnet restore -f net9.0-android
-
-      # 7. Build ARM64 Android APK
+      # 5. Build ARM64 Android APK directly for .NET 10
       - name: Build MAUI ARM64 APK
         run: |
           cd MauiExampleApp
-          dotnet build -c Release -f net9.0-android -p:RuntimeIdentifier=android-arm64 -p:AndroidPackageFormat=apk
+          dotnet build -c Release -f net10.0-android -p:RuntimeIdentifier=android-arm64 -p:AndroidPackageFormat=apk -p:CheckEolTargetFrameworks=false
 
-      # 8. Upload ONLY the compiled ARM64 APK artifact
+      # 6. Upload ONLY the compiled ARM64 APK artifact
       - name: Upload ARM64 APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: maui-arm64-example-apk
-          path: MauiExampleApp/bin/Release/net9.0-android/android-arm64/*-Signed.apk
+          path: MauiExampleApp/bin/Release/net10.0-android/android-arm64/*-Signed.apk
           if-no-files-found: error
           retention-days: 7
           
