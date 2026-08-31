@@ -5,11 +5,11 @@ on: workflow_dispatch
 jobs:
   build:
       runs-on: ubuntu-latest
-      container: archlinux:latest
       steps:
         - name: running 
           run: |
-              pacman -Sy -y
-              pacman -Sy rust -y
-              cargo --version
+              git clone https://github.com/Col-E/Recaf.git
+              cd Recaf
+              chmod +x gradlew 
+              ./gradlew build
           
