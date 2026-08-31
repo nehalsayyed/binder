@@ -1,82 +1,80 @@
-name: Record Android Studio Execution
+name: Record Android Studio Container
 
 on:
-  workflow_dispatch: # Allows manual trigger from GitHub UI
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
 
 jobs:
   record-studio:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Free disk space & install dependencies
+      - name: Create output directory
+        run: mkdir -p ${{ github.workspace }}/output
+
+      - name: Run Android Studio & Record Display via Container
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            xvfb \
-            ffmpeg \
-            lib32z1 \
-            libbz2-1.0 \
-            libc6:i386 \
-            libncurses5:i386 \
-            libstdc++6:i386 \
-            libglu1-mesa \
-            pulseaudio \
-            wmctrl
+          docker run --rm \
+            -v ${{ github.workspace }}/output:/output \
+            ubuntu:22.04 bash -c "
+              set -e
+              export DEBIAN_FRONTEND=noninteractive
+              
+              echo '=== Installing core GUI & X11 packages ==='
+              apt-get update && apt-get install -y --no-install-recommends \
+                xvfb \
+                ffmpeg \
+                curl \
+                ca-certificates \
+                tar \
+                libglu1-mesa \
+                libpulse0 \
+                libsm6 \
+                libxext6 \
+                libxrender1 \
+                openjdk-17-jdk
 
-      - name: Set up Xvfb virtual display
-        run: |
-          # Start Xvfb on display :99 with 1920x1080 resolution and 24-bit color depth
-          Xvfb :99 -screen 0 1920x1080x24 &
-          echo "DISPLAY=:99" >> $GITHUB_ENV
-          sleep 2 # Allow Xvfb time to initialize
+              echo '=== Starting Xvfb Virtual Framebuffer ==='
+              Xvfb :99 -screen 0 1920x1080x24 &
+              export DISPLAY=:99
+              sleep 2
 
-      - name: Download & Extract Android Studio
-        run: |
-          echo "Downloading Android Studio..."
-          # Download latest stable Android Studio Ladybug/Koala tarball
-          curl -sSL "https://redirector.gvt1.com/edgedl/android/studio/ide-zips/2024.1.1.12/android-studio-2024.1.1.12-linux.tar.gz" -o studio.tar.gz
-          mkdir -p /opt/android-studio
-          tar -xzf studio.tar.gz -C /opt/
-          rm studio.tar.gz
+              echo '=== Downloading Android Studio ==='
+              mkdir -p /opt/android-studio
+              curl -sSL 'https://redirector.gvt1.com/edgedl/android/studio/ide-zips/2024.1.1.12/android-studio-2024.1.1.12-linux.tar.gz' \
+                | tar -xz -C /opt/ --strip-components=1
 
-      - name: Launch Android Studio & Record 1 Minute
-        run: |
-          mkdir -p output
-          
-          echo "Starting ffmpeg screen recording..."
-          # Record display :99 for 60 seconds (-t 60) at 30 fps
-          ffmpeg -y \
-            -f x11grab \
-            -video_size 1920x1080 \
-            -framerate 30 \
-            -i :99.0 \
-            -c:v libx264 \
-            -preset ultrafast \
-            -pix_fmt yuv420p \
-            -t 60 output/android_studio_session.mp4 &
-          
-          RECORD_PID=$!
+              echo '=== Starting 1-Minute Screen Recording ==='
+              ffmpeg -y \
+                -f x11grab \
+                -video_size 1920x1080 \
+                -framerate 30 \
+                -i :99.0 \
+                -c:v libx264 \
+                -preset ultrafast \
+                -pix_fmt yuv420p \
+                -t 60 /output/android_studio_session.mp4 &
+              
+              FFMPEG_PID=\$!
 
-          echo "Launching Android Studio..."
-          # Launch Android Studio in non-interactive background mode
-          /opt/android-studio/bin/studio.sh &
-          STUDIO_PID=$!
+              echo '=== Launching Android Studio ==='
+              /opt/android-studio/bin/studio.sh &
+              STUDIO_PID=\$!
 
-          echo "Waiting for recording to complete (60 seconds)..."
-          wait $RECORD_PID || true
+              echo '=== Recording for 60 seconds... ==='
+              wait \$FFMPEG_PID || true
 
-          # Clean shutdown of Android Studio process
-          echo "Stopping Android Studio..."
-          kill -9 $STUDIO_PID 2>/dev/null || true
+              echo '=== Cleaning up process ==='
+              kill -9 \$STUDIO_PID 2>/dev/null || true
+            "
 
-      - name: Upload Recorded Video Artifact
+      - name: Upload Recorded Session
         uses: actions/upload-artifact@v4
         with:
-          name: android-studio-screen-record
+          name: android-studio-recording
           path: output/android_studio_session.mp4
           retention-days: 7
           
