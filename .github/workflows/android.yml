@@ -21,7 +21,7 @@ jobs:
               ./gradlew build
               ls
         - name: upload 
-          uses: auctions/upload-artifact@v4
+          uses: actions/upload-artifact@v4
           with:
             name: output
             path: build/
