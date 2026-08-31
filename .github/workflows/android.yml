@@ -6,6 +6,13 @@ jobs:
   build:
       runs-on: ubuntu-latest
       steps:
+        - name: Setup JDK
+          uses: actions/setup-java@v5
+          with:
+            distribution: temurin
+            java-version: 22
+            check-latest: true
+            
         - name: running 
           run: |
               git clone https://github.com/Col-E/Recaf.git
