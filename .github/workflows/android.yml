@@ -41,7 +41,10 @@ jobs:
                 libxrandr2 \
                 libfontconfig1 \
                 libgtk-3-0 \
-                openjdk-17-jdk
+                openjdk-17-jdk \
+                libnss3 \
+                libasound2 \
+                dbus-x11
 
               echo '=== Starting Xvfb Virtual Framebuffer ==='
               Xvfb :99 -screen 0 1920x1080x24 &
@@ -61,6 +64,13 @@ jobs:
               mkdir -p ~/.config/Google/AndroidStudio2024.1
               echo 'disable.config.import=true' >> /opt/android-studio/bin/idea.properties
 
+              echo '=== Launching Android Studio ==='
+              /opt/android-studio/bin/studio.sh &
+              STUDIO_PID=\$!
+              
+              # Wait for the IDE window to appear before recording
+              sleep 15
+
               echo '=== Starting 1-Minute Screen Recording ==='
               ffmpeg -y \
                 -f x11grab \
@@ -73,10 +83,6 @@ jobs:
                 -t 60 /output/android_studio_session.mp4 &
               
               FFMPEG_PID=\$!
-
-              echo '=== Launching Android Studio ==='
-              /opt/android-studio/bin/studio.sh &
-              STUDIO_PID=\$!
 
               echo '=== Recording for 60 seconds... ==='
               wait \$FFMPEG_PID || true
