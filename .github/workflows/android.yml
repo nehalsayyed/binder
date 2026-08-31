@@ -1,12 +1,12 @@
 name: Record Android Studio Container
 
 on:
-  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+  workflow_dispatch:
 
 jobs:
   record-studio:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -23,9 +23,10 @@ jobs:
               set -e
               export DEBIAN_FRONTEND=noninteractive
               
-              echo '=== Installing core GUI & X11 packages ==='
+              echo '=== Installing GUI dependencies & Window Manager ==='
               apt-get update && apt-get install -y --no-install-recommends \
                 xvfb \
+                openbox \
                 ffmpeg \
                 curl \
                 ca-certificates \
@@ -35,6 +36,11 @@ jobs:
                 libsm6 \
                 libxext6 \
                 libxrender1 \
+                libxtst6 \
+                libxi6 \
+                libxrandr2 \
+                libfontconfig1 \
+                libgtk-3-0 \
                 openjdk-17-jdk
 
               echo '=== Starting Xvfb Virtual Framebuffer ==='
@@ -42,10 +48,18 @@ jobs:
               export DISPLAY=:99
               sleep 2
 
+              echo '=== Starting Openbox Window Manager ==='
+              openbox &
+              sleep 1
+
               echo '=== Downloading Android Studio ==='
               mkdir -p /opt/android-studio
               curl -sSL 'https://redirector.gvt1.com/edgedl/android/studio/ide-zips/2024.1.1.12/android-studio-2024.1.1.12-linux.tar.gz' \
                 | tar -xz -C /opt/ --strip-components=1
+
+              echo '=== Disabling Initial Import Wizard & Analytics Prompt ==='
+              mkdir -p ~/.config/Google/AndroidStudio2024.1
+              echo 'disable.config.import=true' >> /opt/android-studio/bin/idea.properties
 
               echo '=== Starting 1-Minute Screen Recording ==='
               ffmpeg -y \
