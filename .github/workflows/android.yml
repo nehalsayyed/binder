@@ -15,14 +15,9 @@ jobs:
             
         - name: running 
           run: |
-              git clone https://github.com/Col-E/Recaf.git
-              cd Recaf
-              chmod +x gradlew 
-              ./gradlew build
-              ls
-        - name: upload 
-          uses: actions/upload-artifact@v4
-          with:
-            name: output
-            path: Recaf/build/
-          
+              git clone https://github.com/OpenXiangShan/XiangShan.git
+              cd XianShan
+              docker build -t cpu .
+              docker run cpu
+              
+        
