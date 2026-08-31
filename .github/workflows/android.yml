@@ -1,101 +1,11 @@
-name: Record Android Studio Container
+name: build
 
-on:
-  workflow_dispatch:
+on: workflow_dispatch
 
 jobs:
-  record-studio:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Create output directory
-        run: mkdir -p ${{ github.workspace }}/output
-
-      - name: Run Android Studio & Record Display via Container
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}/output:/output \
-            ubuntu:22.04 bash -c "
-              set -e
-              export DEBIAN_FRONTEND=noninteractive
-              
-              echo '=== Installing GUI dependencies & Window Manager ==='
-              apt-get update && apt-get install -y --no-install-recommends \
-                xvfb \
-                openbox \
-                ffmpeg \
-                curl \
-                ca-certificates \
-                tar \
-                libglu1-mesa \
-                libpulse0 \
-                libsm6 \
-                libxext6 \
-                libxrender1 \
-                libxtst6 \
-                libxi6 \
-                libxrandr2 \
-                libfontconfig1 \
-                libgtk-3-0 \
-                openjdk-17-jdk \
-                libnss3 \
-                libasound2 \
-                dbus-x11
-
-              echo '=== Starting Xvfb Virtual Framebuffer ==='
-              Xvfb :99 -screen 0 1920x1080x24 &
-              export DISPLAY=:99
-              sleep 2
-
-              echo '=== Starting Openbox Window Manager ==='
-              openbox &
-              sleep 1
-
-              echo '=== Downloading Android Studio ==='
-              mkdir -p /opt/android-studio
-              # FIXED: -C /opt/android-studio ensures it extracts into the correct directory
-              curl -sSL 'https://redirector.gvt1.com/edgedl/android/studio/ide-zips/2024.1.1.12/android-studio-2024.1.1.12-linux.tar.gz' \
-                | tar -xz -C /opt/android-studio --strip-components=1
-
-              echo '=== Disabling Initial Import Wizard & Analytics Prompt ==='
-              mkdir -p ~/.config/Google/AndroidStudio2024.1
-              echo 'disable.config.import=true' >> /opt/android-studio/bin/idea.properties
-
-              echo '=== Launching Android Studio ==='
-              /opt/android-studio/bin/studio.sh &
-              STUDIO_PID=\$!
-              
-              # Wait for the IDE window to appear before recording
-              sleep 15
-
-              echo '=== Starting 1-Minute Screen Recording ==='
-              ffmpeg -y \
-                -f x11grab \
-                -video_size 1920x1080 \
-                -framerate 30 \
-                -i :99.0 \
-                -c:v libx264 \
-                -preset ultrafast \
-                -pix_fmt yuv420p \
-                -t 60 /output/android_studio_session.mp4 &
-              
-              FFMPEG_PID=\$!
-
-              echo '=== Recording for 60 seconds... ==='
-              wait \$FFMPEG_PID || true
-
-              echo '=== Cleaning up process ==='
-              kill -9 \$STUDIO_PID 2>/dev/null || true
-            "
-
-      - name: Upload Recorded Session
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-studio-recording
-          path: output/android_studio_session.mp4
-          retention-days: 7
+  build:
+      runs-on: ubuntu-latest
+      steps:
+        - name: running 
+          run: !
           
