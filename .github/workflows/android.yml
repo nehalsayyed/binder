@@ -4,18 +4,31 @@ on: workflow_dispatch
 
 jobs:
   build:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Setup JDK
-          uses: actions/setup-java@v5
-          with:
-            distribution: temurin
-            java-version: 22
-            check-latest: true
-            
-        - name: running 
-          run: |
-              cargo install pdf-inspector
-              pdf-inspector
-              
-        
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Rust & MUSL Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+          rustup target add x86_64-unknown-linux-musl
+
+      - name: Install & Statically Build Binaries
+        run: |
+          cargo install pdf-inspector --target x86_64-unknown-linux-musl --root ./output
+
+      - name: Verify Static Binaries
+        run: |
+          ls -la ./output/bin/
+          file ./output/bin/*
+          ./output/bin/detect-pdf --help || true
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdf-inspector-static-binaries
+          path: |
+            ./output/bin/detect-pdf
+            ./output/bin/dump_ops
+            ./output/bin/pdf2md
+          if-no-files-found: error
+          
