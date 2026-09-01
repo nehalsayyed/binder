@@ -15,9 +15,7 @@ jobs:
             
         - name: running 
           run: |
-              git clone --recursive https://github.com/OpenXiangShan/XiangShan.git
-              cd XiangShan
-              docker build -t cpu .
-              docker run cpu
+              cargo install pdf-inspector
+              pdf-inspector
               
         
